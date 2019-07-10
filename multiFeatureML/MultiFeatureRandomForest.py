@@ -18,9 +18,6 @@ if len(sys.argv) > 1:
 if len(sys.argv) > 2:
     stage_index = int(sys.argv[2])
 
-#DATA_PATH = 'C:\\Users\\Philipp\\Documents\\Caffeine\\Features{dose}\\Combined'.format(dose=CAF_DOSE)
-#RESULTS_PATH = 'C:\\Users\\Philipp\\GoogleDrive\\Caffeine\\results\\randomForestAll{dose}'.format(dose=CAF_DOSE)
-
 DATA_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/Features{dose}/Combined'.format(dose=CAF_DOSE)
 RESULTS_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/results/randomForestAll{dose}'.format(dose=CAF_DOSE)
 
@@ -62,12 +59,8 @@ for feature in data.keys():
 x = np.concatenate(x, axis=1)
 
 # initialize data structures for the results
-estimator_dict = {}
-testing_data_dict = {}
-
-testing_data = []
-estimators = []
-avg_score = []
+importances = []
+scores = []
 
 print(f'Found {len(x)} samples')
 
@@ -117,24 +110,20 @@ for i in np.random.permutation(len(cv_split)):
                                                n_jobs=-1)
     grid_search.fit(x[train], y[train], groups[train])
 
-    # save the current testing data subset, the current trained estimator and its score on the test set
-    testing_data.append((x[test], y[test]))
-    estimators.append(grid_search.best_estimator_)
-    avg_score.append(grid_search.best_estimator_.score(x[test], y[test]))
+    # append the current feature importances and score on the test set to the result lists
+    importances.append(grid_search.best_estimator_.feature_importances_)
+    scores.append(grid_search.best_estimator_.score(x[test], y[test]))
     counter += 1
 
-testing_data_dict = testing_data
-estimator_dict = estimators
-
-print('mean score:', np.mean(avg_score), '\n', flush=True)
+print('mean score:', np.mean(scores), '\n', flush=True)
 
 # save the trained estimators
-with open(os.path.join(RESULTS_PATH, f'estimators-{STAGE}.pickle'), 'wb') as file:
-    pickle.dump(estimator_dict, file)
+with open(os.path.join(RESULTS_PATH, f'importances-{STAGE}.pickle'), 'wb') as file:
+    pickle.dump(importances, file)
 
 # save the testing data corresponding to each of the estimators
-with open(os.path.join(RESULTS_PATH, f'testing_data-{STAGE}.pickle'), 'wb') as file:
-    pickle.dump(testing_data_dict, file)
+with open(os.path.join(RESULTS_PATH, f'scores-{STAGE}.pickle'), 'wb') as file:
+    pickle.dump(scores, file)
 
 # save the feature name vector
 with open(os.path.join(RESULTS_PATH, f'feature_names-{STAGE}.pickle'), 'wb') as file:
