@@ -24,8 +24,8 @@ RESULTS_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/results/ran
 STAGES = ['AWA', 'AWSL', 'NREM', 'REM']
 STAGE = STAGES[stage_index]
 
-# boolean indicating whether SpecPermEn and SpecSampEn should be included
-INCLUDE_SPEC = False
+# boolean indicating whether SpecPermEn should be included
+INCLUDE_SPEC_PERM = False
 
 # load data
 with open(os.path.join(DATA_PATH, 'data.pickle'), 'rb') as file:
@@ -39,21 +39,21 @@ with open(os.path.join(DATA_PATH, 'labels.pickle'), 'rb') as file:
 with open(os.path.join(DATA_PATH, 'groups.pickle'), 'rb') as file:
     groups = pickle.load(file)[STAGE]
 
-if INCLUDE_SPEC:
-    # generate a feature name vector WITH SpecPermEn and SpecSampEn
+if INCLUDE_SPEC_PERM:
+    # generate a feature name vector WITH SpecPermEn
     feature_names = np.concatenate([[feature + '-' + str(i) for i in range(20)] for feature in data.keys()])
 else:
-    # generate a feature name vector WITHOUT SpecPermEn and SpecSampEn
-    feature_names = np.concatenate([[feature + '-' + str(i) for i in range(20)] for feature in data.keys() if 'Perm' not in feature and 'SpecSamp' not in feature])
+    # generate a feature name vector WITHOUT SpecPermEn
+    feature_names = np.concatenate([[feature + '-' + str(i) for i in range(20)] for feature in data.keys() if 'SpecPermEn' not in feature])
 
-print(f'Multi feature random forest, include spec perm and spec samp: {INCLUDE_SPEC}, CAF{CAF_DOSE}, stage {STAGE}')
+print(f'Multi feature random forest, include SpecPermEn: {INCLUDE_SPEC_PERM}, CAF{CAF_DOSE}, stage {STAGE}')
 
 x = []
 # create a sample matrix from the data dict
 for feature in data.keys():
-    if not INCLUDE_SPEC:
-        if 'Perm' in feature or 'SpecSamp' in feature:
-            # skip SpecPermEn and SpecSampEn if INCLUDE_SPEC is false
+    if not INCLUDE_SPEC_PERM:
+        if 'SpecPermEn' in feature:
+            # skip SpecPermEn if INCLUDE_SPEC_PERM is false
             continue
     x.append(data[feature])
 x = np.concatenate(x, axis=1)
