@@ -14,13 +14,15 @@ MIN_AGE = -1
 MAX_AGE = -1
 
 PATH = 'C:\\Users\\Philipp\\Documents\\Caffeine\\Features{dose}\\Combined'.format(dose=CAF_DOSE)
-SUBJECTS_PATH = 'E:\\Cafeine_data\\CAF_{dose}_Inventaire.csv'.format(dose=CAF_DOSE)
+SUBJECTS_PATH = 'C:\\Users\\Philipp\\GoogleDrive\\Caffeine\\data\\CAF_{dose}_Inventaire.csv'.format(dose=CAF_DOSE)
 
 STAGES = ['AWA', 'AWSL', 'N1', 'N2', 'N3', 'NREM', 'REM']
 BANDS = ['delta', 'theta', 'alpha', 'sigma', 'beta', 'low gamma']
 
 
 def get_psd_labels_groups(data_dict):
+    print('PSD...')
+
     # get the labels, load the PSD feature and load the hypnograms
     subject_labels = Loader.load_labels(CAF_DOSE)
     psd = Loader.load_feature('PSD', CAF_DOSE)
@@ -104,6 +106,8 @@ def get_psd_labels_groups(data_dict):
 
 
 def get_entropy(data_dict, entropy_type):
+    print(entropy_type, '...', sep='')
+
     entropy = Loader.load_feature(entropy_type, CAF_DOSE)
     meta_info = pd.read_csv(SUBJECTS_PATH, index_col=0)
 
@@ -148,6 +152,7 @@ if __name__ == '__main__':
     get_entropy(data, 'SpecShanEn')
     get_entropy(data, 'SpecPermEn')
     get_entropy(data, 'SpecSampEn')
+    get_entropy(data, 'PermEn')
     get_entropy(data, 'SampEn')
 
     normalize(data)
