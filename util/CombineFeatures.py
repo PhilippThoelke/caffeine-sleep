@@ -150,10 +150,10 @@ if __name__ == '__main__':
     print('-------------------- Concatenating features --------------------')
     labels, groups, names, hypnograms = get_psd_labels_groups(data)
     get_entropy(data, 'SpecShanEn')
-    get_entropy(data, 'SpecPermEn')
+    get_entropy(data, 'SampEn')
     get_entropy(data, 'SpecSampEn')
     get_entropy(data, 'PermEn')
-    get_entropy(data, 'SampEn')
+    get_entropy(data, 'SpecPermEn')
 
     normalize(data)
 
