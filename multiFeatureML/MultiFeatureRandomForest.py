@@ -19,24 +19,24 @@ if len(sys.argv) > 2:
     stage_index = int(sys.argv[2])
 
 DATA_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/Features{dose}/Combined'.format(dose=CAF_DOSE)
-RESULTS_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/results/randomForestAll{dose}'.format(dose=CAF_DOSE)
+RESULTS_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/results/randomForest_avg{dose}'.format(dose=CAF_DOSE)
 
-STAGES = ['AWA', 'AWSL', 'NREM', 'REM']
+STAGES = ['AWSL', 'NREM', 'REM']
 STAGE = STAGES[stage_index]
 
 # boolean indicating whether SpecPermEn should be included
 INCLUDE_SPEC_PERM = False
 
 # load data
-with open(os.path.join(DATA_PATH, 'data.pickle'), 'rb') as file:
+with open(os.path.join(DATA_PATH, 'data_avg.pickle'), 'rb') as file:
     data = pickle.load(file)[STAGE]
 
 # load labels
-with open(os.path.join(DATA_PATH, 'labels.pickle'), 'rb') as file:
+with open(os.path.join(DATA_PATH, 'labels_avg.pickle'), 'rb') as file:
     y = pickle.load(file)[STAGE]
 
 # load group vectors
-with open(os.path.join(DATA_PATH, 'groups.pickle'), 'rb') as file:
+with open(os.path.join(DATA_PATH, 'groups_avg.pickle'), 'rb') as file:
     groups = pickle.load(file)[STAGE]
 
 if INCLUDE_SPEC_PERM:
