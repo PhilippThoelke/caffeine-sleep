@@ -195,7 +195,7 @@ if __name__ == '__main__':
                 data_1 = current[feature][(groups[stage] == i) & (labels[stage] == 1)]
 
                 if len(data_0) == 0 or len(data_1) == 0:
-                    print(f'Dropping subject {names[stage][i]} (empty class)')
+                    print(f'Dropping subject {names[stage][i]} ({len(data_0)} plac, {len(data_1)} caf)')
                     continue
 
                 added.add(i)
