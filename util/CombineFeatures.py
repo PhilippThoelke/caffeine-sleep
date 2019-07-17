@@ -10,8 +10,8 @@ import pandas as pd
 
 
 CAF_DOSE = 200
-MIN_AGE = -1
-MAX_AGE = -1
+MIN_AGE = -1 # -1 for no minimum age
+MAX_AGE = -1 # -1 for no maximum age
 
 PATH = 'C:\\Users\\Philipp\\Documents\\Caffeine\\Features{dose}\\Combined'.format(dose=CAF_DOSE)
 SUBJECTS_PATH = 'C:\\Users\\Philipp\\GoogleDrive\\Caffeine\\data\\CAF_{dose}_Inventaire.csv'.format(dose=CAF_DOSE)
@@ -57,6 +57,7 @@ def get_psd_labels_groups(data_dict):
 
             if subject.size == 0:
                 # drop empty subjects
+                print(f'Dropping recording {subject_id}, missing values for this feature')
                 continue
 
             if stage == 'AWA':
@@ -125,7 +126,8 @@ def get_entropy(data_dict, entropy_type):
                     continue
 
             if subject.size == 0:
-                print(f'Dropping recording {subject_id}')
+                # drop empty subjects
+                print(f'Dropping recording {subject_id}, missing values for this feature')
                 continue
             curr_data.append(subject)
 
@@ -186,15 +188,18 @@ if __name__ == '__main__':
         print(stage)
 
         added = set()
+        dropped = []
         for feature in current.keys():
             data_avg[stage][feature] = []
 
-            for i in range(np.max(groups[stage])):
+            for i in range(len(np.unique(groups[stage]))):
                 data_0 = current[feature][(groups[stage] == i) & (labels[stage] == 0)]
                 data_1 = current[feature][(groups[stage] == i) & (labels[stage] == 1)]
 
                 if len(data_0) == 0 or len(data_1) == 0:
-                    print(f'Dropping subject {names[stage][i]} ({len(data_0)} plac, {len(data_1)} caf)')
+                    if names[stage][i] not in dropped:
+                        dropped.append(names[stage][i])
+                        print(f'Dropping subject {names[stage][i]} ({len(data_0)} plac, {len(data_1)} caf)')
                     continue
 
                 added.add(i)
