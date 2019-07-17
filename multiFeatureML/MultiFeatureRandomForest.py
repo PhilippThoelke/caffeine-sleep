@@ -58,45 +58,30 @@ for feature in data.keys():
     x.append(data[feature])
 x = np.concatenate(x, axis=1)
 
-# initialize data structures for the results
-importances = []
-scores = []
-
 print(f'Found {len(x)} samples')
 
 # leave P groups out as testing data
-cv = model_selection.LeavePGroupsOut(n_groups=4)
+cv = model_selection.LeavePGroupsOut(n_groups=5)
 # make a list out of the data split generator for random access
 cv_split = list(cv.split(x, y, groups))
 
-counter = 0
-# iterate through a random permutation of the cross validation split indices
-for i in np.random.permutation(len(cv_split)):
-    # get current train-test split
-    train, test = cv_split[i]
-
-    if counter % 25 == 0:
-        print(f'{STAGE} iteration {counter}/{iterations}', flush=True)
-    if counter >= iterations:
-        # iteration count has been reached, break out of the loop
-        break
-
+def train(train, test):
     # initialize a random forest
-    clf = ensemble.RandomForestClassifier(n_jobs=-1)
+    clf = ensemble.RandomForestClassifier()
 
     # generate a parameter dict for the random forest during grid search
     params = {
-        'n_estimators': [50, 100],
-        'max_depth': [None, 10],
-        'criterion': ['gini'],
-        'max_features': ['auto'],
-        'min_samples_leaf': [1],
-        'class_weight': ['balanced_subsample'],
-        'bootstrap': [True]
+        'n_estimators': [10, 25, 50, 75],
+        'max_depth': [None, 5, 10],
+        'criterion': ['gini', 'entropy'],
+        'max_features': ['sqrt', 'log2'],
+        'min_samples_leaf': [1, 5, 10],
+        'bootstrap': [True, False],
+        'n_jobs': [-1]
     }
 
     # generate a K-fold split of the training subset for cross validation during the grid search
-    kfold_inner = model_selection.GroupKFold(n_splits=10)
+    kfold_inner = model_selection.GroupKFold(n_splits=7)
     inner_cross_validation_split = kfold_inner.split(x[train],
                                                      y[train],
                                                      groups[train])
@@ -110,10 +95,13 @@ for i in np.random.permutation(len(cv_split)):
                                                n_jobs=-1)
     grid_search.fit(x[train], y[train], groups[train])
 
-    # append the current feature importances and score on the test set to the result lists
-    importances.append(grid_search.best_estimator_.feature_importances_)
-    scores.append(grid_search.best_estimator_.score(x[test], y[test]))
-    counter += 1
+    return grid_search.best_estimator_.feature_importances_, grid_search.best_estimator_.score(x[test], y[test])
+
+perm = np.random.permutation(len(cv_split))
+results = Parallel(n_jobs=-1)(delayed(train)(*cv_split[perm[i]]) for i in range(iterations))
+
+importances = [result[0] for result in results]
+scores = [result[1] for result in results]
 
 print('mean score:', np.mean(scores), '\n', flush=True)
 
