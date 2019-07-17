@@ -138,10 +138,11 @@ def get_entropy(data_dict, entropy_type):
 
 
 def normalize(data_dict):
+    # average data stage- and feature-wise
     for stage in data_dict.keys():
         for feature in data_dict[stage].keys():
             curr = data_dict[stage][feature]
-            data_dict[stage][feature] = (curr - curr.mean(axis=0)) / curr.std(axis=0)
+            data_dict[stage][feature] = (curr - curr.mean()) / curr.std()
 
 
 if __name__ == '__main__':
@@ -154,8 +155,6 @@ if __name__ == '__main__':
     get_entropy(data, 'SpecSampEn')
     get_entropy(data, 'PermEn')
     get_entropy(data, 'SpecPermEn')
-
-    normalize(data)
 
     # dropping AWA data before first sleep
     for ft in data['AWA'].keys():
@@ -210,6 +209,9 @@ if __name__ == '__main__':
 
         labels_avg[stage] = np.array(labels_avg[stage])
         groups_avg[stage] = np.array(groups_avg[stage])
+
+    normalize(data)
+    normalize(data_avg)
 
     age_suffix = ''
     if MIN_AGE >= 0:
