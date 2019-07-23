@@ -21,6 +21,9 @@ if len(sys.argv) > 2:
 DATA_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/Features{dose}/Combined'.format(dose=CAF_DOSE)
 RESULTS_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/results/randomForest_avg{dose}'.format(dose=CAF_DOSE)
 
+#DATA_PATH = 'C:\\Users\\Philipp\\Documents\\Caffeine\\Features{dose}\\Combined'.format(dose=CAF_DOSE)
+#RESULTS_PATH = 'C:\\Users\\Philipp\\GoogleDrive\\Caffeine\\results\\randomForest_avg{dose}'.format(dose=CAF_DOSE)
+
 STAGES = ['AWSL', 'NREM', 'REM']
 STAGE = STAGES[stage_index]
 
@@ -71,8 +74,8 @@ def train(train, test):
 
     # generate a parameter dict for the random forest during grid search
     params = {
-        'n_estimators': [10, 25, 50, 75],
-        'max_depth': [None, 5, 10],
+        'n_estimators': [75, 100, 150, 200],
+        'max_depth': [None, 50, 75],
         'criterion': ['gini', 'entropy'],
         'max_features': ['sqrt', 'log2'],
         'min_samples_leaf': [1, 5, 10],
