@@ -13,13 +13,17 @@ SIGNIFICANT_P = 0.05
 if len(sys.argv) > 2:
     CAF_DOSE = sys.argv[2]
 
-CLASSIFIERS = ['SVM', 'LDA', 'QDA', 'GradientBoosting', 'KNeighbors', 'GaussianProcess', 'Perceptron']
+CLASSIFIERS = ['SVM', 'LDA', 'Perceptron', 'GaussianProcess']
 
 DATA_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/Features{dose}/Combined'.format(dose=CAF_DOSE)
-PROJECT_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine_cpu'
+PROJECT_PATH = '/home/pthoelke/caffeine'
 RESULTS_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/results'
 
-STAGES = ['AWA', 'AWSL', 'NREM', 'REM']
+#DATA_PATH = 'C:\\Users\\Philipp\\Documents\\Caffeine\\Features{dose}\\Combined'.format(dose=CAF_DOSE)
+#PROJECT_PATH = '..\\data' # path to where the EEG sensor position file is stored
+#RESULTS_PATH = '..\\results'
+
+STAGES = ['AWSL', 'NREM', 'REM']
 BANDS = ['delta', 'theta', 'alpha', 'sigma', 'beta', 'low gamma']
 
 sensor_pos = io.loadmat(os.path.join(PROJECT_PATH, 'Coo_caf'))['Cor'].T
@@ -62,16 +66,18 @@ for stage in STAGES:
     for feature in data[stage].keys():
         scores[stage][feature] = []
         for electrode in range(20):
-            print(f'   Training {CLASSIFIER} for feature {feature} (electrode {electrode + 1:2})', end='', flush=True)
+            print(f'   {CLASSIFIER} on {feature}, elec {electrode + 1}', end='', flush=True)
 
             if CLASSIFIER.lower() == 'svm':
-                params = {'kernel': ['linear', 'poly', 'rbf', 'sigmoid'], 'degree': [2, 3, 4, 5], 'gamma': ['auto', 'scale']}
+                params = {'kernel': ['linear', 'poly', 'rbf', 'sigmoid'], 'degree': [2, 3], 'gamma': ['auto', 'scale']}
             elif CLASSIFIER.lower() == 'lda':
                 params = {'solver': ['svd', 'lsqr', 'eigen']}
             elif CLASSIFIER.lower() == 'qda':
                 params = {'reg_param': [0, 0.25, 0.5]}
             elif CLASSIFIER.lower() == 'gradientboosting':
-                params = {'n_estimators': [100]}
+                params = {'n_estimators': [50, 100]}
+            elif CLASSIFIER.lower() == 'adaboost':
+                params = {'n_estimators': [50, 100]}
             elif CLASSIFIER.lower() == 'kneighbors':
                 params = {'weights': ['uniform', 'distance']}
             elif CLASSIFIER.lower() == 'gaussianprocess':
@@ -94,10 +100,10 @@ for stage in STAGES:
 
             print(f' Train: {len(train_x)}, test: {len(x) - len(train_x)}', end='')
 
-            kfold = model_selection.GroupKFold(n_splits=8)
+            kfold_grid = model_selection.GroupKFold(n_splits=5)
             grid_search = model_selection.GridSearchCV(estimator=get_classifier(CLASSIFIER),
                                                        param_grid=params,
-                                                       cv=kfold.split(X=train_x, y=train_y, groups=train_groups),
+                                                       cv=kfold_grid.split(X=train_x, y=train_y, groups=train_groups),
                                                        iid=False,
                                                        n_jobs=-1)
             grid_search.fit(X=train_x,
@@ -105,27 +111,19 @@ for stage in STAGES:
                             groups=train_groups)
 
             # train classifier
-            unique_g = np.unique(g)
-            x_list = [x[g==curr] for curr in unique_g]
-            y_list = [y[g==curr] for curr in unique_g]
-
-            lpo = model_selection.LeavePGroupsOut(n_groups=4)
-            split = list(lpo.split(X=x, y=y, groups=g))
-            indices = np.random.permutation(len(split))[:2000]
-            split = [split[i] for i in indices]
-
+            kfold = model_selection.GroupKFold(n_splits=10)
             score = model_selection.permutation_test_score(estimator=get_classifier(CLASSIFIER, params=grid_search.best_params_),
                                                            n_permutations=1000,
                                                            X=x,
                                                            y=y,
                                                            groups=g,
-                                                           cv=split,
+                                                           cv=kfold.split(X=x, y=y, groups=g),
                                                            n_jobs=-1)
             print(f' score: {score[0]}, pvalue: {score[2]}')
             scores[stage][feature].append(score)
         print()
 
-with open(os.path.join(RESULTS_PATH, f'scores{CAF_DOSE}', f'scores_{CLASSIFIER}.pickle'), 'wb') as file:
+with open(os.path.join(RESULTS_PATH, f'scores_single{CAF_DOSE}', f'scores_{CLASSIFIER}.pickle'), 'wb') as file:
     pickle.dump(scores, file)
 
 all_scores = [[[elec[0] for elec in ft] for ft in stage.values()] for stage in scores.values()]
@@ -138,7 +136,7 @@ print(f'Mean accuracy: {np.mean(all_scores) * 100:.2f}%')
 
 plot_rows = 2
 plot_cols = 5
-colormap = 'jet'
+colormap = 'coolwarm'
 
 for stage in STAGES:
     plt.figure(figsize=(18, 5))
@@ -165,4 +163,4 @@ for stage in STAGES:
     sm = plt.cm.ScalarMappable(cmap=colormap, norm=norm)
     sm.set_array([])
     plt.colorbar(sm, ax=axes, shrink=0.95, aspect=15)
-    plt.savefig(os.path.join(RESULTS_PATH, f'figures{CAF_DOSE}', f'{CLASSIFIER}_DA_{stage}.png'))
+    plt.savefig(os.path.join(RESULTS_PATH, f'figures_single{CAF_DOSE}', f'{CLASSIFIER}_DA_{stage}.png'))
