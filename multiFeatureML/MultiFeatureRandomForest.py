@@ -101,7 +101,7 @@ def train(train, test):
     return grid_search.best_estimator_.feature_importances_, grid_search.best_estimator_.score(x[test], y[test])
 
 perm = np.random.permutation(len(cv_split))
-results = Parallel(n_jobs=-1)(delayed(train)(*cv_split[perm[i]]) for i in range(iterations))
+results = Parallel(n_jobs=15)(delayed(train)(*cv_split[perm[i]]) for i in range(iterations))
 
 importances = [result[0] for result in results]
 scores = [result[1] for result in results]
