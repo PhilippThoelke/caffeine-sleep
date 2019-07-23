@@ -18,9 +18,9 @@ CAF_DOSE = sys.argv[2]
 
 CLASSIFIERS = ['SVM', 'LDA', 'RandomForest', 'MultilayerPerceptron']
 
-FEATURE_PATH = 'C:\\Users\\Philipp\\Documents\\Caffeine\\Features{dose}\\Combined'.format(dose=CAF_DOSE)
-PROJECT_PATH = '..\\data'
-RESULTS_PATH = '..\\results'
+FEATURE_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/Features{dose}/Combined'.format(dose=CAF_DOSE)
+PROJECT_PATH = '/home/pthoelke/caffeine'
+RESULTS_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/results'
 
 STAGES = ['AWSL', 'NREM', 'REM']
 BANDS = ['delta', 'theta', 'alpha', 'sigma', 'beta', 'low gamma']
@@ -47,10 +47,10 @@ def train_electrode(x, y, g, clf, stage, electrode):
         params = {'solver': ['svd', 'lsqr', 'eigen']}
     elif clf_name.lower() == 'multilayerperceptron':
         clf = neural_network.MLPClassifier
-        params = {'max_iter': [2000], 'hidden_layer_sizes': [(8,), (4,)], 'activation': ['relu'], 'learning_rate': ['constant']}
+        params = {'max_iter': [3000], 'hidden_layer_sizes': [(8,), (4,)], 'activation': ['relu', 'tanh', 'logistic'], 'learning_rate': ['constant', 'invscaling', 'adaptive']}
     elif clf_name.lower() == 'randomforest':
         clf = ensemble.RandomForestClassifier
-        params = {'n_jobs': [-1], 'n_estimators': [15, 30], 'max_depth': [10, None], 'max_features': ['sqrt', 'log2']}
+        params = {'n_jobs': [-1], 'n_estimators': [10, 20, 40, 60, 100], 'max_depth': [5, 10, 50, None], 'max_features': ['sqrt', 'log2'], 'min_samples_leaf': [1, 2, 5]}
 
     # randomly take half of the subjects away for the grid search
     half_out = model_selection.LeavePGroupsOut(n_groups=len(np.unique(g)) // 2)
