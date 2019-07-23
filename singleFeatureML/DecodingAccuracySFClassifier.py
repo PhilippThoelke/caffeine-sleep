@@ -90,7 +90,7 @@ for stage in STAGES:
             g = groups[stage]
 
             # perform grid search
-            leave_p_out = model_selection.LeavePGroupsOut(n_groups=len(np.unique(g)) // 2)
+            leave_p_out = model_selection.LeavePGroupsOut(n_groups=len(np.unique(g)) // 4 * 3)
             test_split = leave_p_out.split(X=x, y=y, groups=g)
             train_indices, test_indices = next(test_split)
 
