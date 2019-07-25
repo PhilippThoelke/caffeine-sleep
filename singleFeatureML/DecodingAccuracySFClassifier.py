@@ -98,7 +98,7 @@ for stage in STAGES:
             train_y = y[train_indices]
             train_groups = g[train_indices]
 
-            print(f' Train: {len(train_x)}, test: {len(x) - len(train_x)}', end='')
+            print(f' Grid search on {len(train_x)} samples', end='')
 
             kfold_grid = model_selection.GroupKFold(n_splits=5)
             grid_search = model_selection.GridSearchCV(estimator=get_classifier(CLASSIFIER),
@@ -110,6 +110,10 @@ for stage in STAGES:
                             y=train_y,
                             groups=train_groups)
 
+            x, y, g = x[test_indices], y[test_indices], g[test_indices]
+
+            print(f', permutation on {len(x)} samples', end='')
+
             # train classifier
             kfold = model_selection.GroupKFold(n_splits=10)
             score = model_selection.permutation_test_score(estimator=get_classifier(CLASSIFIER, params=grid_search.best_params_),
@@ -119,7 +123,7 @@ for stage in STAGES:
                                                            groups=g,
                                                            cv=kfold.split(X=x, y=y, groups=g),
                                                            n_jobs=-1)
-            print(f' score: {score[0]}, pvalue: {score[2]}')
+            print(f', score: {score[0]}, pvalue: {score[2]}')
             scores[stage][feature].append(score)
         print()
 
@@ -133,34 +137,3 @@ vmax = np.max(all_scores)
 print(f'Min accuracy: {vmin * 100:.2f}%')
 print(f'Max accuracy: {vmax * 100:.2f}%')
 print(f'Mean accuracy: {np.mean(all_scores) * 100:.2f}%')
-
-plot_rows = 2
-plot_cols = 5
-colormap = 'coolwarm'
-
-for stage in STAGES:
-    plt.figure(figsize=(18, 5))
-    plt.suptitle(stage, y=1.05, fontsize=20)
-
-    all_scores = [[elec[0] for elec in ft] for ft in scores[stage].values()]
-    vmin = np.min(all_scores)
-    vmax = np.max(all_scores)
-
-    subplot_index = 1
-    axes = []
-    for feature in scores[stage].keys():
-        curr_acc = np.array([score[0] for score in scores[stage][feature]])
-        curr_sig = np.array([score[2] for score in scores[stage][feature]])
-
-        ax = plt.subplot(plot_rows, plot_cols, subplot_index)
-        axes.append(ax)
-        plt.title(feature)
-        mask = curr_sig < SIGNIFICANT_P
-        viz.plot_topomap(curr_acc, sensor_pos, mask=mask, cmap=colormap, vmin=vmin, vmax=vmax, contours=False, show=False)
-        subplot_index += 1
-
-    norm = colors.Normalize(vmin=vmin,vmax=vmax)
-    sm = plt.cm.ScalarMappable(cmap=colormap, norm=norm)
-    sm.set_array([])
-    plt.colorbar(sm, ax=axes, shrink=0.95, aspect=15)
-    plt.savefig(os.path.join(RESULTS_PATH, f'figures_single{CAF_DOSE}', f'{CLASSIFIER}_DA_{stage}.png'))
