@@ -22,6 +22,10 @@ FEATURE_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/Features{do
 PROJECT_PATH = '/home/pthoelke/caffeine'
 RESULTS_PATH = '/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/results'
 
+#FEATURE_PATH = 'C:\\Users\\Philipp\\Documents\\Caffeine\\Features{dose}\\Combined'.format(dose=CAF_DOSE)
+#PROJECT_PATH = '..\\data'
+#RESULTS_PATH = '..\\results'
+
 STAGES = ['AWSL', 'NREM', 'REM']
 BANDS = ['delta', 'theta', 'alpha', 'sigma', 'beta', 'low gamma']
 
@@ -41,36 +45,22 @@ with open(os.path.join(FEATURE_PATH, 'groups_avg.pickle'), 'rb') as file:
 def train_electrode(x, y, g, clf, stage, electrode):
     if clf_name.lower() == 'svm':
         clf = svm.SVC
-        params = {'kernel': ['linear', 'poly', 'rbf', 'sigmoid'], 'degree': [2, 3], 'gamma': ['auto', 'scale']}
+        params = {'kernel': 'rbf', 'gamma': 'auto'}
     elif clf_name.lower() == 'lda':
         clf = discriminant_analysis.LinearDiscriminantAnalysis
-        params = {'solver': ['svd', 'lsqr', 'eigen']}
+        params = {'solver': 'svd'}
     elif clf_name.lower() == 'multilayerperceptron':
         clf = neural_network.MLPClassifier
-        params = {'max_iter': [3000], 'hidden_layer_sizes': [(8,), (4,)], 'activation': ['relu', 'tanh', 'logistic'], 'learning_rate': ['constant', 'invscaling', 'adaptive']}
+        params = {'max_iter': 5000, 'hidden_layer_sizes': (8,)}
     elif clf_name.lower() == 'randomforest':
         clf = ensemble.RandomForestClassifier
-        params = {'n_jobs': [-1], 'n_estimators': [10, 20, 40, 60, 100], 'max_depth': [5, 10, 50, None], 'max_features': ['sqrt', 'log2'], 'min_samples_leaf': [1, 2, 5]}
-
-    # randomly take half of the subjects away for the grid search
-    half_out = model_selection.LeavePGroupsOut(n_groups=len(np.unique(g)) // 2)
-    train_indices, _ = next(half_out.split(x, y, g))
-    x_train, y_train, g_train = x[train_indices], y[train_indices], g[train_indices]
-
-    # use KFold cross validation in the grid search
-    grid_kfold = model_selection.GroupKFold(n_splits=5)
-    grid_search = model_selection.GridSearchCV(estimator=clf(),
-                                               param_grid=params,
-                                               iid=True,
-                                               cv=grid_kfold.split(x_train, y_train, g_train),
-                                               n_jobs=-1)
-    grid_search.fit(x_train, y_train, g_train)
+        params = {'n_jobs': -1, 'n_estimators': 100}
 
     kfold = model_selection.GroupKFold(n_splits=10)
     split = list(kfold.split(x, y, g))
     test_indices = [indices[1] for indices in split]
 
-    current = model_selection.permutation_test_score(estimator=clf(**grid_search.best_params_),
+    current = model_selection.permutation_test_score(estimator=clf(**params),
                                                      X=x,
                                                      y=y,
                                                      groups=g,
@@ -78,7 +68,12 @@ def train_electrode(x, y, g, clf, stage, electrode):
                                                      n_permutations=1000,
                                                      n_jobs=-1)
 
-    return current[::2], [grid_search.best_estimator_.predict(x[fold]) for fold in test_indices], test_indices
+    estimators = []
+    for train, test in split:
+        estimators.append(clf(**params))
+        estimators[-1].fit(x[train], y[train])
+
+    return current[::2], [estimators[i].predict(x[fold]) for i, fold in enumerate(test_indices)], [y[fold] for fold in test_indices]
 
 
 scores = {}
@@ -100,7 +95,7 @@ for stage in STAGES:
 
         scores[stage][clf_name] = results[0]
         curr_pred.append(results[1])
-        curr_test_indices = results[2]
+        curr_labels = results[2]
 
         print(f'done, score: {scores[stage][clf_name][0]:.3f}', flush=True)
 
@@ -111,9 +106,11 @@ for stage in STAGES:
         mean = np.zeros(len(curr_pred[:,i][0]))
         for j in range(len(curr_pred[:,i])):
             mean += curr_pred[:,i][j]
-        ensemble_pred.append(np.rint(mean / len(curr_pred[:,i])).astype(int))
-    scores[stage]['ensemble'] = np.mean([metrics.accuracy_score(ensemble_pred[i], y[fold]) for i, fold in enumerate(curr_test_indices)])
-    print(f'    Ensemble score: {scores[stage]["ensemble"]}')
 
-with open(os.path.join(RESULTS_PATH, f'scores_multi{CAF_DOSE}', f'scores_multi_{electrode}.pickle'), 'wb') as file:
+        ensemble_pred.append(np.rint(mean / len(curr_pred[:,i])).astype(int))
+
+    scores[stage]['ensemble'] = np.mean([metrics.accuracy_score(ensemble_pred[i], labels) for i, labels in enumerate(curr_labels)])
+    print(f'    Ensemble score: {scores[stage]["ensemble"]:.3f}')
+
+with open(os.path.join(RESULTS_PATH, f'scores_multi_noGrid{CAF_DOSE}', f'scores_multi_{electrode}.pickle'), 'wb') as file:
     pickle.dump(scores, file)
