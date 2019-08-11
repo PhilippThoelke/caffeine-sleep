@@ -28,7 +28,7 @@ STAGES = ['AWSL', 'NREM', 'REM']
 STAGE = STAGES[stage_index]
 
 # boolean indicating whether SpecPermEn should be included
-INCLUDE_SPEC_PERM = False
+INCLUDE_SPEC_PERM = True
 
 # load data
 with open(os.path.join(DATA_PATH, 'data_avg.pickle'), 'rb') as file:
@@ -108,14 +108,27 @@ scores = [result[1] for result in results]
 
 print('mean score:', np.mean(scores), '\n', flush=True)
 
-# save the trained estimators
-with open(os.path.join(RESULTS_PATH, f'importances-{STAGE}.pickle'), 'wb') as file:
-    pickle.dump(importances, file)
+if INCLUDE_SPEC_PERM:
+    # save the trained estimators
+    with open(os.path.join(RESULTS_PATH, f'specpermen_importances-{STAGE}.pickle'), 'wb') as file:
+        pickle.dump(importances, file)
 
-# save the testing data corresponding to each of the estimators
-with open(os.path.join(RESULTS_PATH, f'scores-{STAGE}.pickle'), 'wb') as file:
-    pickle.dump(scores, file)
+    # save the testing data corresponding to each of the estimators
+    with open(os.path.join(RESULTS_PATH, f'specpermen_scores-{STAGE}.pickle'), 'wb') as file:
+        pickle.dump(scores, file)
 
-# save the feature name vector
-with open(os.path.join(RESULTS_PATH, f'feature_names-{STAGE}.pickle'), 'wb') as file:
-    pickle.dump(feature_names, file)
+    # save the feature name vector
+    with open(os.path.join(RESULTS_PATH, f'specpermen_feature_names-{STAGE}.pickle'), 'wb') as file:
+        pickle.dump(feature_names, file)
+else:
+    # save the trained estimators
+    with open(os.path.join(RESULTS_PATH, f'importances-{STAGE}.pickle'), 'wb') as file:
+        pickle.dump(importances, file)
+
+    # save the testing data corresponding to each of the estimators
+    with open(os.path.join(RESULTS_PATH, f'scores-{STAGE}.pickle'), 'wb') as file:
+        pickle.dump(scores, file)
+
+    # save the feature name vector
+    with open(os.path.join(RESULTS_PATH, f'feature_names-{STAGE}.pickle'), 'wb') as file:
+        pickle.dump(feature_names, file)

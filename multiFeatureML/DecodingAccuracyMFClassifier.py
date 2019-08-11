@@ -12,6 +12,7 @@ from sklearn import model_selection, ensemble, svm, discriminant_analysis, neura
 CAF_DOSE = 200
 electrode = 0
 SIGNIFICANT_P = 0.05
+INCLUDE_SPECPERMEN = True
 
 electrode = int(sys.argv[1])
 CAF_DOSE = sys.argv[2]
@@ -79,8 +80,12 @@ def train_electrode(x, y, g, clf, stage, electrode):
 scores = {}
 for stage in STAGES:
     scores[stage] = {}
+    
+    if INCLUDE_SPECPERMEN:
+        features = [feature for name, feature in data[stage].items()]
+    else:
+        features = [feature for name, feature in data[stage].items() if not 'SpecPermEn' in name]
 
-    features = [feature for name, feature in data[stage].items() if not 'SpecPermEn' in name]
     print(f'{stage}: {len(features)} features, {len(features[0])} samples')
 
     x_all = np.concatenate(features, axis=1)
@@ -112,5 +117,9 @@ for stage in STAGES:
     scores[stage]['ensemble'] = np.mean([metrics.accuracy_score(ensemble_pred[i], labels) for i, labels in enumerate(curr_labels)])
     print(f'    Ensemble score: {scores[stage]["ensemble"]:.3f}')
 
-with open(os.path.join(RESULTS_PATH, f'scores_multi_noGrid{CAF_DOSE}', f'scores_multi_{electrode}.pickle'), 'wb') as file:
-    pickle.dump(scores, file)
+if INCLUDE_SPECPERMEN:
+    with open(os.path.join(RESULTS_PATH, f'scores_multi_noGrid{CAF_DOSE}', f'specpermen_scores_multi_{electrode}.pickle'), 'wb') as file:
+        pickle.dump(scores, file)
+else:
+    with open(os.path.join(RESULTS_PATH, f'scores_multi_noGrid{CAF_DOSE}', f'scores_multi_{electrode}.pickle'), 'wb') as file:
+        pickle.dump(scores, file)
