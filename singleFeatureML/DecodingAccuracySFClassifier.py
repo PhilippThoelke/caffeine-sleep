@@ -38,7 +38,7 @@ with open(os.path.join(DATA_PATH, 'groups_avg.pickle'), 'rb') as file:
 
 def get_classifier(name, params={}):
     if CLASSIFIER.lower() == 'svm':
-        return svm.SVC(**params)
+        return svm.SVC(gamma='auto', **params)
     elif CLASSIFIER.lower() == 'lda':
         return discriminant_analysis.LinearDiscriminantAnalysis(**params)
     elif CLASSIFIER.lower() == 'qda':
@@ -69,54 +69,30 @@ for stage in STAGES:
             print(f'   {CLASSIFIER} on {feature}, elec {electrode + 1}', end='', flush=True)
 
             if CLASSIFIER.lower() == 'svm':
-                params = {'kernel': ['linear', 'poly', 'rbf', 'sigmoid'], 'degree': [2, 3], 'gamma': ['auto', 'scale']}
+                params = {}
             elif CLASSIFIER.lower() == 'lda':
-                params = {'solver': ['svd', 'lsqr', 'eigen']}
+                params = {}
             elif CLASSIFIER.lower() == 'qda':
-                params = {'reg_param': [0, 0.25, 0.5]}
+                params = {}
             elif CLASSIFIER.lower() == 'gradientboosting':
-                params = {'n_estimators': [50, 100]}
+                params = {}
             elif CLASSIFIER.lower() == 'adaboost':
-                params = {'n_estimators': [50, 100]}
+                params = {}
             elif CLASSIFIER.lower() == 'kneighbors':
-                params = {'weights': ['uniform', 'distance']}
+                params = {}
             elif CLASSIFIER.lower() == 'gaussianprocess':
-                params = {'n_restarts_optimizer': [0, 50, 100], 'max_iter_predict': [100, 300]}
+                params = {}
             elif CLASSIFIER.lower() == 'perceptron':
-                params = {'penalty': [None, 'l2', 'l1', 'elasticnet'], 'fit_intercept': [True, False]}
+                params = {}
 
             x = data[stage][feature][:,electrode].reshape((-1, 1))
             y = labels[stage]
             g = groups[stage]
-
-            # perform grid search
-            leave_p_out = model_selection.LeavePGroupsOut(n_groups=len(np.unique(g)) // 4 * 3)
-            test_split = leave_p_out.split(X=x, y=y, groups=g)
-            train_indices, test_indices = next(test_split)
-
-            train_x = x[train_indices]
-            train_y = y[train_indices]
-            train_groups = g[train_indices]
-
-            print(f' Grid search on {len(train_x)} samples', end='')
-
-            kfold_grid = model_selection.GroupKFold(n_splits=5)
-            grid_search = model_selection.GridSearchCV(estimator=get_classifier(CLASSIFIER),
-                                                       param_grid=params,
-                                                       cv=kfold_grid.split(X=train_x, y=train_y, groups=train_groups),
-                                                       iid=False,
-                                                       n_jobs=-1)
-            grid_search.fit(X=train_x,
-                            y=train_y,
-                            groups=train_groups)
-
-            x, y, g = x[test_indices], y[test_indices], g[test_indices]
-
-            print(f', permutation on {len(x)} samples', end='')
+            print(f', permutation test on {len(x)} samples', end='')
 
             # train classifier
             kfold = model_selection.GroupKFold(n_splits=10)
-            score = model_selection.permutation_test_score(estimator=get_classifier(CLASSIFIER, params=grid_search.best_params_),
+            score = model_selection.permutation_test_score(estimator=get_classifier(CLASSIFIER, params=params),
                                                            n_permutations=1000,
                                                            X=x,
                                                            y=y,
@@ -127,7 +103,7 @@ for stage in STAGES:
             scores[stage][feature].append(score)
         print()
 
-with open(os.path.join(RESULTS_PATH, f'scores_single{CAF_DOSE}', f'scores_{CLASSIFIER}.pickle'), 'wb') as file:
+with open(os.path.join(RESULTS_PATH, f'scores_single_noGrid{CAF_DOSE}', f'scores_{CLASSIFIER}.pickle'), 'wb') as file:
     pickle.dump(scores, file)
 
 all_scores = [[[elec[0] for elec in ft] for ft in stage.values()] for stage in scores.values()]
