@@ -1,7 +1,7 @@
 # Caffeine-Sleep
 Analysis of the effect of caffeine on quantitative sleep EEG utilizing statistics and machine learning in a data-driven manner.
 
-## Librarry specificities
+## Library specificities
 A modified version of the library MNE, used for analyzing and visualizing neurophysiological data, was used.
 - Official version: https://github.com/mne-tools/mne-python.git
 - Modified version: https://github.com/PhilippThoelke/mne-python.git
