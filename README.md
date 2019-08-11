@@ -1,5 +1,10 @@
 # Caffeine-Sleep
-Analysis of the effect of different caffeine doses on quantitative sleep EEG utilizing statistics and machine learning in a data-driven manner.
+Analysis of the effect of caffeine on quantitative sleep EEG utilizing statistics and machine learning in a data-driven manner.
+
+## Library specificities
+A modified version of the library MNE, used for analyzing and visualizing neurophysiological data, was used.
+- Official version: https://github.com/mne-tools/mne-python.git
+- Modified version: https://github.com/PhilippThoelke/mne-python.git
 
 ## Related work
 - Caffeine Caused a Widespread Increase of Resting Brain Entropy
