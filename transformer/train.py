@@ -20,13 +20,13 @@ def main(data_path, label_path, val_ratio=0.2):
     # val subset
     idx_val = idxs[-int(len(data) * val_ratio) :]
     val_data = Subset(data, idx_val)
-    val_dl = DataLoader(val_data, batch_size=64, num_workers=4)
+    val_dl = DataLoader(val_data, batch_size=64, num_workers=6)
 
     # define model
     module = TransformerModule()
 
     # train
-    trainer = pl.Trainer(accelerator="auto")
+    trainer = pl.Trainer(accelerator="auto", devices="auto")
     trainer.fit(model=module, train_dataloaders=train_dl, val_dataloaders=val_dl)
 
 
