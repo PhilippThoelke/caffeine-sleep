@@ -26,7 +26,7 @@ def main(data_path, label_path, val_ratio=0.2):
     module = TransformerModule()
 
     # train
-    trainer = pl.Trainer()
+    trainer = pl.Trainer(accelerator="auto")
     trainer.fit(model=module, train_dataloaders=train_dl, val_dataloaders=val_dl)
 
 
