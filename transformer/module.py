@@ -6,12 +6,17 @@ import pytorch_lightning as pl
 
 
 class TransformerModule(pl.LightningModule):
-    def __init__(self, hparams):
+    def __init__(self, hparams, mean=0, std=1):
         super().__init__()
         self.save_hyperparameters(hparams)
 
+        self.register_buffer("mean", torch.scalar_tensor(mean))
+        self.register_buffer("std", torch.scalar_tensor(std))
+
+        # input projection layer
         self.window_length = 5120 // self.hparams.num_tokens
         self.proj = nn.Linear(self.window_length, self.hparams.embedding_dim)
+        # transformer encoder
         self.pe = PositionalEncoding(
             self.hparams.embedding_dim, dropout=self.hparams.dropout
         )
@@ -25,6 +30,7 @@ class TransformerModule(pl.LightningModule):
             dropout=self.hparams.dropout,
         )
         self.encoder = nn.TransformerEncoder(encoder_layer, self.hparams.num_layers)
+        # output network
         self.outnet = nn.Sequential(
             nn.Linear(self.hparams.embedding_dim, 64), nn.ReLU(), nn.Linear(64, 1)
         )
@@ -36,6 +42,8 @@ class TransformerModule(pl.LightningModule):
         x = x.view(x.size(0), self.hparams.num_tokens, self.window_length, x.size(2))
         x = x.permute(0, 3, 1, 2).reshape(x.size(0), -1, self.window_length)
         x = x.permute(1, 0, 2)
+        # standardize data
+        x = (x - self.mean) / self.std
         # linear projection into embedding dimension
         x = self.proj(x)
         # add positional encoding
