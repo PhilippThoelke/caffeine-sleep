@@ -73,7 +73,7 @@ class TransformerModule(pl.LightningModule):
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, factor=0.8, patience=10
         )
-        return dict(optimizer=optimizer, scheduler=scheduler, monitor="val_loss")
+        return dict(optimizer=optimizer, lr_scheduler=scheduler, monitor="val_loss")
 
     def training_epoch_end(self, *args, **kwargs):
         self.log("lr", self.optimizers().param_groups[0]["lr"])
