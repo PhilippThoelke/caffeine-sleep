@@ -69,7 +69,22 @@ class TransformerModule(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return optim.Adam(self.parameters(), lr=1e-4)
+        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, factor=0.8, patience=10
+        )
+        return dict(optimizer=optimizer, scheduler=scheduler, monitor="val_loss")
+
+    def training_epoch_end(self, *args, **kwargs):
+        self.log("lr", self.optimizers().param_groups[0]["lr"])
+        return super().training_epoch_end(*args, **kwargs)
+
+    def optimizer_step(self, *args, **kwargs):
+        if self.global_step < self.hparams.warmup_steps:
+            self.optimizers().param_groups[0]["lr"] = self.hparams.learning_rate * (
+                (self.global_step + 1) / self.hparams.warmup_steps
+            )
+        return super().optimizer_step(*args, **kwargs)
 
 
 class PositionalEncoding(nn.Module):

@@ -28,7 +28,7 @@ def main(args):
     module = TransformerModule(args)
 
     # train
-    trainer = pl.Trainer(accelerator="auto", devices="auto")
+    trainer = pl.Trainer(accelerator="auto", devices="auto", max_epochs=args.max_epochs)
     trainer.fit(model=module, train_dataloaders=train_dl, val_dataloaders=val_dl)
 
 
@@ -45,6 +45,12 @@ if __name__ == "__main__":
         type=Path,
         required=True,
         help="path to the csv file containing labels",
+    )
+    parser.add_argument(
+        "--learning-rate",
+        default=1e-3,
+        type=float,
+        help="base learning rate",
     )
     parser.add_argument(
         "--batch-size",
@@ -81,6 +87,18 @@ if __name__ == "__main__":
         default=0.1,
         type=float,
         help="dropout ratio",
+    )
+    parser.add_argument(
+        "--warmup-steps",
+        default=1000,
+        type=int,
+        help="number of steps for lr warmup",
+    )
+    parser.add_argument(
+        "--max-epochs",
+        default=300,
+        type=int,
+        help="maximum number of epochs",
     )
 
     args = parser.parse_args()
