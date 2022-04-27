@@ -1,6 +1,5 @@
 import argparse
 from tqdm import tqdm
-from pathlib import Path
 import torch
 from torch.utils.data import DataLoader, Subset
 import pytorch_lightning as pl
@@ -48,13 +47,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--data-path",
-        type=Path,
+        type=str,
         required=True,
         help="path to the memory mapped data file",
     )
     parser.add_argument(
         "--label-path",
-        type=Path,
+        type=str,
         required=True,
         help="path to the csv file containing labels",
     )
