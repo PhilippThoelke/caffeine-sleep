@@ -36,6 +36,9 @@ class TransformerModule(pl.LightningModule):
         )
 
     def forward(self, x):
+        # add a batch dimension if required
+        if x.ndim == 2:
+            x = x.unsqueeze(0)
         # crop sequence to be divisible by the desired number of tokens
         x = x[:, : self.hparams.num_tokens * self.window_length]
         # reshape x from (B x time x elec) to (token x B x window_length)
