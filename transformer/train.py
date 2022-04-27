@@ -1,3 +1,4 @@
+from os import makedirs, path
 import argparse
 from tqdm import tqdm
 import torch
@@ -38,8 +39,15 @@ def main(args):
     # define model
     module = TransformerModule(args, mean, std)
 
-    # train
+    # define trainer instance
     trainer = pl.Trainer(accelerator="auto", devices="auto", max_epochs=args.max_epochs)
+
+    # store train val splits
+    makedirs(trainer.log_dir, exist_ok=True)
+    splits = dict(train=idx_train, val=idx_val)
+    torch.save(splits, path.join(trainer.log_dir, "splits.pt"))
+
+    # train model
     trainer.fit(model=module, train_dataloaders=train_dl, val_dataloaders=val_dl)
 
 
