@@ -86,9 +86,9 @@ class TransformerModule(pl.LightningModule):
             weight_decay=self.hparams.weight_decay,
         )
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, factor=0.8, patience=10
+            optimizer, factor=0.7, patience=5
         )
-        return dict(optimizer=optimizer, lr_scheduler=scheduler, monitor="val_loss")
+        return dict(optimizer=optimizer, lr_scheduler=scheduler, monitor="train_loss")
 
     def training_epoch_end(self, *args, **kwargs):
         self.log("lr", self.optimizers().param_groups[0]["lr"])

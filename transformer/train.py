@@ -80,7 +80,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--learning-rate",
-        default=5e-4,
+        default=1e-3,
         type=float,
         help="base learning rate",
     )
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--num-layers",
-        default=4,
+        default=3,
         type=int,
         help="number of encoder layers in the transformer",
     )
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--warmup-steps",
-        default=1000,
+        default=5000,
         type=int,
         help="number of steps for lr warmup",
     )
