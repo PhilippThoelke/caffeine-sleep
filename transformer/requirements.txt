@@ -1,1 +1,2 @@
-antropy
+antropy==0.1.4
+mne==1.0.2
