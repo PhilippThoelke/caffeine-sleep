@@ -80,7 +80,11 @@ class TransformerModule(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        optimizer = optim.AdamW(
+            self.parameters(),
+            lr=self.hparams.learning_rate,
+            weight_decay=self.hparams.weight_decay,
+        )
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, factor=0.8, patience=10
         )

@@ -121,6 +121,12 @@ if __name__ == "__main__":
         help="dropout ratio",
     )
     parser.add_argument(
+        "--weight-decay",
+        default=0.01,
+        type=float,
+        help="weight decay",
+    )
+    parser.add_argument(
         "--warmup-steps",
         default=1000,
         type=int,
