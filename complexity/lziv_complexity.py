@@ -9,8 +9,8 @@ from tqdm import tqdm
 from mne import viz, stats
 
 
-data_dir = "../transformer/data/200/"
-result_dir = "../results/lziv"
+data_dir = "transformer/data/200/"
+result_dir = "results/lziv/"
 
 stages = ["AWA", "NREM", "REM"]
 conditions = ["CAF", "PLAC"]
@@ -27,22 +27,31 @@ def complexity(epoch):
 result = {}
 for stage in stages:
     result[stage] = {}
+    data = {}
     for condition in conditions:
         print(f"processing {stage} {condition}:")
         # load data
         paths = get_paths(data_dir, stage=stage, condition=condition)
 
-        data = {}
+        data[condition] = {}
         for path in tqdm(paths, desc="loading data"):
             subject = path.split(os.sep)[-1].split("_")[0].split("n")[0]
-            if subject in data:
-                data[subject] = np.concatenate([data[subject], np.load(path)])
+            if subject in data[condition]:
+                data[condition][subject] = np.concatenate(
+                    [data[condition][subject], np.load(path)]
+                )
             else:
-                data[subject] = np.load(path)
+                data[condition][subject] = np.load(path)
 
+    # drop subjects that don't appear in all conditions
+    drop_subjects = set.symmetric_difference(*map(set, data.values()))
+
+    for condition in conditions:
         result[stage][condition] = []
-        for subject in tqdm(data.keys(), desc="estimating complexity"):
-            dat = data[subject].transpose((0, 2, 1)).reshape(-1, 5120)
+        for subject in tqdm(data[condition].keys(), desc="estimating complexity"):
+            if subject in drop_subjects:
+                continue
+            dat = data[condition][subject].transpose((0, 2, 1)).reshape(-1, 5120)
             res = Parallel(n_jobs=-1)(delayed(complexity)(epoch) for epoch in dat)
             result[stage][condition].append(np.array(res).reshape(-1, 20).mean(axis=0))
         result[stage][condition] = np.stack(result[stage][condition])
