@@ -1,6 +1,8 @@
-from os import makedirs, path
 import argparse
+from functools import reduce
+from os import makedirs, path
 from tqdm import tqdm
+import numpy as np
 import torch
 from torch.utils.data import DataLoader, Subset
 import pytorch_lightning as pl
@@ -8,20 +10,26 @@ from dataset import RawDataset
 from module import TransformerModule
 
 
+def split_data(data, val_subject_ratio):
+    unique_subject_ids = np.unique(data.subject_ids)
+    num_val_subjects = int(len(unique_subject_ids) * val_subject_ratio)
+    subject_idxs = np.random.choice(unique_subject_ids, num_val_subjects, replace=False)
+    val_mask = reduce(np.bitwise_or, [data.subject_ids == i for i in subject_idxs])
+    return np.where(~val_mask)[0], np.where(val_mask)[0]
+
+
 def main(args):
     # load data
     data = RawDataset(args.data_path, args.label_path)
-    idxs = torch.randperm(len(data))
+    idx_train, idx_val = split_data(data, args.val_subject_ratio)
 
     # train subset
-    idx_train = idxs[: -int(len(data) * args.val_ratio)]
     train_data = Subset(data, idx_train)
     train_dl = DataLoader(
         train_data, batch_size=args.batch_size, shuffle=True, num_workers=4
     )
 
     # val subset
-    idx_val = idxs[-int(len(data) * args.val_ratio) :]
     val_data = Subset(data, idx_val)
     val_dl = DataLoader(val_data, batch_size=args.batch_size, num_workers=4)
 
@@ -44,7 +52,12 @@ def main(args):
 
     # store train val splits
     makedirs(trainer.log_dir, exist_ok=True)
-    splits = dict(train=idx_train, val=idx_val)
+    splits = dict(
+        train_idx=idx_train,
+        val_idx=idx_val,
+        train_subjects=data.id2subject(np.unique(data.subject_ids[idx_train])),
+        val_subjects=data.id2subject(np.unique(data.subject_ids[idx_val])),
+    )
     torch.save(splits, path.join(trainer.log_dir, "splits.pt"))
 
     # train model
@@ -78,10 +91,10 @@ if __name__ == "__main__":
         help="batch size",
     )
     parser.add_argument(
-        "--val-ratio",
+        "--val-subject-ratio",
         default=0.2,
         type=float,
-        help="ratio of the data to be used for validation",
+        help="ratio of subjects to be used for validation",
     )
     parser.add_argument(
         "--num-tokens",
