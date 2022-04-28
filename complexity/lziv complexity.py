@@ -1,6 +1,5 @@
 import os
 from os.path import join
-from scipy.io import loadmat
 import glob
 import pickle
 import numpy as np
