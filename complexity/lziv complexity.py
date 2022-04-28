@@ -5,7 +5,7 @@ import pickle
 import numpy as np
 from antropy import lziv_complexity
 from joblib import Parallel, delayed
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from mne import viz, stats
 
 
