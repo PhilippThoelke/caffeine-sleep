@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 
 
 class TransformerModule(pl.LightningModule):
-    def __init__(self, hparams, mean=0, std=1):
+    def __init__(self, hparams, mean=0, std=1, num_subjects=None):
         super().__init__()
         self.save_hyperparameters(hparams)
 
@@ -34,8 +34,17 @@ class TransformerModule(pl.LightningModule):
         self.outnet = nn.Sequential(
             nn.Linear(self.hparams.embedding_dim, 64), nn.ReLU(), nn.Linear(64, 1)
         )
+        if self.hparams.subject_penalty > 0:
+            assert (
+                num_subjects is not None
+            ), "num_subjects can't be None if subject_penalty > 0"
 
-    def forward(self, x):
+            # subject identifier for regularization
+            self.subject_identifier = nn.Linear(
+                self.hparams.embedding_dim, num_subjects
+            )
+
+    def forward(self, x, return_class_token=False):
         # add a batch dimension if required
         if x.ndim == 2:
             x = x.unsqueeze(0)
@@ -53,11 +62,13 @@ class TransformerModule(pl.LightningModule):
         x = self.pe(x)
         # prepend class token to the sequence
         x = torch.cat([self.class_token[None, None].repeat(1, x.size(1), 1), x], dim=0)
-        # pass sequence through the transformer
-        x = self.encoder(x)
-        # extract class token and apply output model
-        x = self.outnet(x[0])
-        return x
+        # pass sequence through the transformer and extract class tokens
+        x = self.encoder(x)[0]
+        # apply output model
+        y = self.outnet(x).squeeze()
+        if return_class_token:
+            return y, x
+        return y
 
     def training_step(self, batch, batch_idx):
         return self.step(batch, batch_idx, running_stage="train")
@@ -67,7 +78,7 @@ class TransformerModule(pl.LightningModule):
 
     def step(self, batch, batch_idx, running_stage):
         x, condition, stage, subject = batch
-        pred = self(x).squeeze()
+        pred, rep = self(x, return_class_token=True)
 
         # loss
         loss = F.binary_cross_entropy_with_logits(pred, condition.float())
@@ -76,6 +87,13 @@ class TransformerModule(pl.LightningModule):
         # accuracy
         acc = ((torch.sigmoid(pred) > 0.5).int() == condition).float().mean()
         self.log(f"{running_stage}_acc", acc)
+
+        # penalize identification of subjects
+        if self.hparams.subject_penalty > 0:
+            subject_pred = self.subject_identifier(rep)
+            subject_loss = F.cross_entropy(subject_pred, subject)
+            self.log(f"{running_stage}_subject_loss", acc)
+            loss = loss + -subject_loss * self.hparams.subject_penalty
 
         return loss
 

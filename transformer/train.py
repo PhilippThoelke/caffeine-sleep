@@ -45,7 +45,7 @@ def main(args):
     mean, std = torch.tensor(means).mean(), torch.tensor(stds).mean()
 
     # define model
-    module = TransformerModule(args, mean, std)
+    module = TransformerModule(args, mean, std, num_subjects=len(data.subject_mapping))
 
     # define trainer instance
     trainer = pl.Trainer(accelerator="auto", devices="auto", max_epochs=args.max_epochs)
@@ -132,6 +132,12 @@ if __name__ == "__main__":
         default=0.01,
         type=float,
         help="weight decay",
+    )
+    parser.add_argument(
+        "--subject-penalty",
+        default=0.1,
+        type=float,
+        help="weighting factor for subject identifying loss",
     )
     parser.add_argument(
         "--warmup-steps",
