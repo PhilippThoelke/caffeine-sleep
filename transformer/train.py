@@ -20,7 +20,7 @@ def split_data(data, val_subject_ratio):
 
 def main(args):
     # load data
-    data = RawDataset(args.data_path, args.label_path)
+    data = RawDataset(args.data_path, args.label_path, stage=args.sleep_stage)
     idx_train, idx_val = split_data(data, args.val_subject_ratio)
 
     # train subset
@@ -77,6 +77,13 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="path to the csv file containing labels",
+    )
+    parser.add_argument(
+        "--sleep-stage",
+        type=str,
+        default="all",
+        choices=["all", "AWSL", "NREM", "REM"],
+        help="sleep stage(s) to use",
     )
     parser.add_argument(
         "--learning-rate",

@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 
 class RawDataset(Dataset):
-    def __init__(self, data_file, label_file):
+    def __init__(self, data_file, label_file, stage="all"):
         if not path.exists(data_file):
             raise FileNotFoundError(f"Data file was not found: {data_file}")
         if not path.exists(label_file):
@@ -29,16 +29,23 @@ class RawDataset(Dataset):
             f"and label file ({self.data.shape[0]} and {label.shape[0]})"
         )
 
+        # extract indices of samples with the correct sleep stage
+        if stage == "all":
+            self.indices = label.index.values
+        else:
+            self.indices = label[label["stage"] == stage].index.values
+            label = label[label["stage"] == stage]
+
         self.subject_ids, self.subject_mapping = label["subject"].factorize()
         self.stage_ids, self.stage_mapping = label["stage"].factorize()
         self.condition_ids, self.condition_mapping = label["condition"].factorize()
 
     def __len__(self):
-        return self.data.shape[0]
+        return len(self.indices)
 
     def __getitem__(self, idx):
         return (
-            torch.from_numpy(self.data[idx].copy()),
+            torch.from_numpy(self.data[self.indices[idx]].copy()),
             self.condition_ids[idx],
             self.stage_ids[idx],
             self.subject_ids[idx],
