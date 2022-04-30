@@ -93,7 +93,7 @@ class TransformerModule(pl.LightningModule):
             subject_pred = self.subject_identifier(rep)
             subject_loss = F.cross_entropy(subject_pred, subject)
             self.log(f"{running_stage}_subject_loss", acc)
-            loss = loss + -subject_loss * self.hparams.subject_penalty
+            loss = loss - subject_loss * self.hparams.subject_penalty
 
         return loss
 
