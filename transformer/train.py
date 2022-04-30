@@ -37,7 +37,7 @@ def main(args):
     result = [
         (sample[0].mean(), sample[0].std())
         for sample in tqdm(
-            DataLoader(train_data, batch_size=256, num_workers=8),
+            DataLoader(train_data, batch_size=256, num_workers=4),
             desc="extracting mean and standard deviation",
         )
     ]
