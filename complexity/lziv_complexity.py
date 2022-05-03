@@ -3,6 +3,7 @@ from os.path import join
 import glob
 import pickle
 import numpy as np
+from scipy import signal
 from antropy import lziv_complexity
 from joblib import Parallel, delayed
 from tqdm import tqdm
@@ -12,6 +13,8 @@ from mne import viz, stats
 data_dir = "transformer/data/200/"
 result_dir = "results/lziv/"
 
+use_psd = False
+
 stages = ["AWA", "NREM", "REM"]
 conditions = ["CAF", "PLAC"]
 
@@ -20,7 +23,10 @@ def get_paths(root, subject="*", stage="*", condition="*"):
     return glob.glob(join(root, f"{subject}n*_{stage}_*_{condition}.npy"))
 
 
-def complexity(epoch):
+def complexity(epoch, use_psd=True):
+    if use_psd:
+        # TODO: maybe use something other than median split to binarize the PSD
+        epoch = signal.welch(epoch, fs=256, nperseg=len(epoch) // 6, noverlap=0, window='hamming')[1]
     return lziv_complexity((epoch > np.median(epoch)).astype(int), normalize=True)
 
 
@@ -52,7 +58,7 @@ for stage in stages:
             if subject in drop_subjects:
                 continue
             dat = data[condition][subject].transpose((0, 2, 1)).reshape(-1, 5120)
-            res = Parallel(n_jobs=-1)(delayed(complexity)(epoch) for epoch in dat)
+            res = Parallel(n_jobs=-1)(delayed(complexity)(epoch, use_psd) for epoch in dat)
             result[stage][condition].append(np.array(res).reshape(-1, 20).mean(axis=0))
         result[stage][condition] = np.stack(result[stage][condition])
 
@@ -64,5 +70,5 @@ for stage in stages:
     )
 
 
-with open(join(result_dir, "lziv.pkl"), "wb") as f:
+with open(join(result_dir, f"lziv{'_psd' if use_psd else ''}.pkl"), "wb") as f:
     pickle.dump(result, f)
