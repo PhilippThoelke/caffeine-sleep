@@ -15,7 +15,7 @@ result_dir = "results/lziv/"
 
 use_psd = False
 
-stages = ["AWA", "NREM", "REM"]
+stages = ["AWSL", "NREM", "REM"]
 conditions = ["CAF", "PLAC"]
 
 
