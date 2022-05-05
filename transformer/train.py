@@ -45,7 +45,13 @@ def main(args):
     mean, std = torch.tensor(means).mean(), torch.tensor(stds).mean()
 
     # define model
-    module = TransformerModule(args, mean, std, num_subjects=len(data.subject_mapping))
+    module = TransformerModule(
+        args,
+        epoch_length=train_data[0][0].size(0),
+        mean=mean,
+        std=std,
+        num_subjects=len(data.subject_mapping),
+    )
 
     # define trainer instance
     trainer = pl.Trainer(accelerator="auto", devices="auto", max_epochs=args.max_epochs)

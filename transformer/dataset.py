@@ -17,6 +17,7 @@ class RawDataset(Dataset):
         assert (
             name == "nsamp"
         ), "The file name does not contain the number of samples in the expected position."
+        # hardcode an epoch length of 5120 and 20 channels
         self.data = np.memmap(
             data_file, mode="r", dtype=np.float32, shape=(int(nsamp), 5120, 20)
         )
