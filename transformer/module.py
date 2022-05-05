@@ -34,6 +34,7 @@ class TransformerModule(pl.LightningModule):
         self.outnet = nn.Sequential(
             nn.Linear(self.hparams.embedding_dim, 64), nn.ReLU(), nn.Linear(64, 1)
         )
+
         if self.hparams.subject_penalty > 0:
             assert (
                 num_subjects is not None
@@ -44,7 +45,7 @@ class TransformerModule(pl.LightningModule):
                 self.hparams.embedding_dim, num_subjects
             )
 
-    def forward(self, x, return_class_token=False):
+    def forward(self, x, return_class_token=False, return_logits=False):
         # add a batch dimension if required
         if x.ndim == 2:
             x = x.unsqueeze(0)
@@ -66,6 +67,8 @@ class TransformerModule(pl.LightningModule):
         x = self.encoder(x)[0]
         # apply output model
         y = self.outnet(x).squeeze()
+        if not return_logits:
+            y = torch.sigmoid(y)
         if return_class_token:
             return y, x
         return y
@@ -78,7 +81,7 @@ class TransformerModule(pl.LightningModule):
 
     def step(self, batch, batch_idx, running_stage):
         x, condition, stage, subject = batch
-        pred, rep = self(x, return_class_token=True)
+        pred, rep = self(x, return_class_token=True, return_logits=True)
 
         # loss
         loss = F.binary_cross_entropy_with_logits(pred, condition.float())
