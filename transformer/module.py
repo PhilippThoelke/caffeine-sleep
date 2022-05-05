@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 
 
 class TransformerModule(pl.LightningModule):
-    def __init__(self, hparams, epoch_length, mean=0, std=1, num_subjects=None):
+    def __init__(self, hparams, mean=0, std=1, num_subjects=None):
         super().__init__()
         self.save_hyperparameters(hparams)
 
@@ -14,7 +14,7 @@ class TransformerModule(pl.LightningModule):
         self.register_buffer("std", torch.scalar_tensor(std))
 
         # input projection layer
-        self.window_length = epoch_length // self.hparams.num_tokens
+        self.window_length = self.hparams.epoch_length // self.hparams.num_tokens
         self.proj = nn.Linear(self.window_length, self.hparams.embedding_dim)
         # transformer encoder
         self.pe = PositionalEncoding(
