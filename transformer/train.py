@@ -141,7 +141,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--subject-penalty",
-        default=0.1,
+        default=0,
         type=float,
         help="weighting factor for subject identifying loss",
     )
