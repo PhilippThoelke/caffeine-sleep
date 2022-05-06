@@ -95,6 +95,24 @@ if __name__ == "__main__":
         help="base learning rate",
     )
     parser.add_argument(
+        "--subject-lr",
+        default=5e-5,
+        type=float,
+        help="learning rate for the subject classifier",
+    )
+    parser.add_argument(
+        "--adversarial-lr",
+        default=1e-5,
+        type=float,
+        help="learning rate for the adversarial subject identifier",
+    )
+    parser.add_argument(
+        "--adversarial-frequency",
+        default=0,
+        type=int,
+        help="frequency at which the adversarial and subject optimizers run (0 disables adversarial training)",
+    )
+    parser.add_argument(
         "--batch-size",
         default=32,
         type=int,
@@ -102,7 +120,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--val-subject-ratio",
-        default=0.2,
+        default=0.15,
         type=float,
         help="ratio of subjects to be used for validation",
     )
@@ -135,12 +153,6 @@ if __name__ == "__main__":
         default=0.01,
         type=float,
         help="weight decay",
-    )
-    parser.add_argument(
-        "--subject-penalty",
-        default=0,
-        type=float,
-        help="weighting factor for subject identifying loss",
     )
     parser.add_argument(
         "--warmup-steps",
