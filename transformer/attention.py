@@ -7,7 +7,7 @@ import numpy as np
 from scipy.io import loadmat
 import torch
 from torch.nn import TransformerEncoderLayer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from mne.viz import plot_topomap
 from mne.stats import permutation_t_test
 from dataset import RawDataset
@@ -61,6 +61,10 @@ def main(args, rollout=True, stage="NREM", n_batches=2):
 
     # load data
     data = RawDataset(args.data_path, args.label_path, stage=stage)
+    if args.data_splits is not None:
+        # only use validation data
+        val_idx = torch.load(args.data_splits)["val_idx"]
+        data = Subset(data, val_idx)
     dl = DataLoader(data, batch_size=32, num_workers=4, shuffle=True)
 
     # extract attention weights
@@ -280,6 +284,12 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="path to the directory where the figures should be stored",
+    )
+    parser.add_argument(
+        "--data-splits",
+        type=str,
+        default=None,
+        help="path to the data splits path",
     )
 
     args = parser.parse_args()
