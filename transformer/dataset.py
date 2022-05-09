@@ -3,14 +3,36 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
+from mne.filter import notch_filter, filter_data
+import warnings
 
 
 class RawDataset(Dataset):
-    def __init__(self, data_file, label_file, stage="all"):
+    def __init__(
+        self,
+        data_file,
+        label_file,
+        stage="all",
+        sample_rate=None,
+        notch_freq=None,
+        low_pass=None,
+        high_pass=None,
+    ):
         if not path.exists(data_file):
             raise FileNotFoundError(f"Data file was not found: {data_file}")
         if not path.exists(label_file):
             raise FileNotFoundError(f"Label file was not found: {label_file}")
+
+        if notch_freq is not None or low_pass is not None or high_pass is not None:
+            assert sample_rate is not None, (
+                "sample rate must be specified to run a"
+                "notch, low pass or high pass filter"
+            )
+
+        self.sample_rate = sample_rate
+        self.notch_freq = notch_freq
+        self.low_pass = low_pass
+        self.high_pass = high_pass
 
         # memory map the raw data
         name, nsamp = path.basename(data_file).split("-")[1].split("_")
@@ -45,8 +67,30 @@ class RawDataset(Dataset):
         return len(self.indices)
 
     def __getitem__(self, idx):
+        x = self.data[self.indices[idx]].copy().astype(float)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+            # notch filter
+            if self.notch_freq is not None:
+                x = notch_filter(
+                    x.T,
+                    self.sample_rate,
+                    np.arange(self.notch_freq, self.sample_rate // 2, self.notch_freq),
+                    verbose="warning",
+                ).T
+
+            # band pass filter
+            if self.low_pass is not None or self.high_pass is not None:
+                x = filter_data(
+                    x.T,
+                    self.sample_rate,
+                    self.high_pass,
+                    self.low_pass,
+                    verbose="warning",
+                ).T
         return (
-            torch.from_numpy(self.data[self.indices[idx]].copy()),
+            torch.from_numpy(x.astype(np.float32)),
             self.condition_ids[idx],
             self.stage_ids[idx],
             self.subject_ids[idx],

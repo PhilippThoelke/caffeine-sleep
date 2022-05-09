@@ -20,7 +20,15 @@ def split_data(data, val_subject_ratio):
 
 def main(args):
     # load data
-    data = RawDataset(args.data_path, args.label_path, stage=args.sleep_stage)
+    data = RawDataset(
+        args.data_path,
+        args.label_path,
+        stage=args.sleep_stage,
+        sample_rate=args.sample_rate,
+        notch_freq=args.notch_freq,
+        low_pass=args.low_pass,
+        high_pass=args.high_pass,
+    )
     idx_train, idx_val = split_data(data, args.val_subject_ratio)
 
     # train subset
@@ -165,6 +173,30 @@ if __name__ == "__main__":
         default=300,
         type=int,
         help="maximum number of epochs",
+    )
+    parser.add_argument(
+        "--sample-rate",
+        default=None,
+        type=float,
+        help="sampling frequency of the data",
+    )
+    parser.add_argument(
+        "--notch-freq",
+        default=None,
+        type=float,
+        help="frequency at which to apply a notch filter",
+    )
+    parser.add_argument(
+        "--low-pass",
+        default=None,
+        type=float,
+        help="frequency at which to apply a low pass filter",
+    )
+    parser.add_argument(
+        "--high-pass",
+        default=None,
+        type=float,
+        help="frequency at which to apply a high pass filter",
     )
 
     args = parser.parse_args()
