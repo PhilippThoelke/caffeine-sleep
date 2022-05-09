@@ -49,7 +49,7 @@ class attention_wrapper:
         return y, torch.stack(weights)
 
 
-def main(args, rollout=True, stage="NREM", n_batches=2):
+def main(args, rollout=True, n_batches=-1):
     torch.set_grad_enabled(False)
 
     # load model
@@ -60,7 +60,7 @@ def main(args, rollout=True, stage="NREM", n_batches=2):
     model = attention_wrapper(model)
 
     # load data
-    data = RawDataset(args.data_path, args.label_path, stage=stage)
+    data = RawDataset(args.data_path, args.label_path, stage=args.sleep_stage)
     if args.data_splits is not None:
         # only use validation data
         val_idx = torch.load(args.data_splits)["val_idx"]
@@ -284,6 +284,13 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="path to the directory where the figures should be stored",
+    )
+    parser.add_argument(
+        "--sleep-stage",
+        type=str,
+        required=True,
+        choices=["all", "AWSL", "NREM", "REM"],
+        help="sleep stage for which data should be loaded",
     )
     parser.add_argument(
         "--data-splits",
