@@ -146,7 +146,7 @@ def main(args, rollout=True, n_batches=-1):
         # averaged temporally
         fig, axes = plt.subplots(ncols=2)
         plot_topomap(
-            elecs1.max(dim=1).values,
+            elecs1.mean(dim=1),
             pos,
             axes=axes[0],
             show=False,
@@ -155,7 +155,7 @@ def main(args, rollout=True, n_batches=-1):
             vmax=vmax,
         )
         plot_topomap(
-            elecs2.max(dim=1).values,
+            elecs2.mean(dim=1),
             pos,
             axes=axes[1],
             show=False,
@@ -168,7 +168,7 @@ def main(args, rollout=True, n_batches=-1):
         plt.savefig(join(args.result_dir, "temporally-averaged.png"), dpi=300)
 
         # averaged temporally, caf - plac
-        temporal_agg_fn = "max"
+        temporal_agg_fn = "mean"
         caf_id = int(data.id2condition(0) == "PLAC")
         w = weights.mean(dim=1)[:, 1:].reshape(-1, 20, model.model.hparams.num_tokens)
         if temporal_agg_fn == "max":
