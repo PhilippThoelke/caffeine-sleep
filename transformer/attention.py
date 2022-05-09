@@ -1,5 +1,7 @@
 from os.path import join
 import argparse
+import glob
+import yaml
 from tqdm import tqdm
 from functools import partialmethod
 from matplotlib import pyplot as plt
@@ -49,21 +51,29 @@ class attention_wrapper:
         return y, torch.stack(weights)
 
 
-def main(args, rollout=True, n_batches=-1):
+def main(
+    model_path,
+    data_path,
+    label_path,
+    result_dir,
+    sensors_path,
+    sleep_stage="all",
+    data_splits_path=None,
+    rollout=True,
+    n_batches=-1,
+):
     torch.set_grad_enabled(False)
 
     # load model
-    model = TransformerModule.load_from_checkpoint(
-        args.model_path, num_subjects=40
-    ).eval()
+    model = TransformerModule.load_from_checkpoint(model_path, num_subjects=40).eval()
     model.freeze()
     model = attention_wrapper(model)
 
     # load data
-    data = RawDataset(args.data_path, args.label_path, stage=args.sleep_stage)
-    if args.data_splits is not None:
+    data = RawDataset(data_path, label_path, stage=sleep_stage)
+    if data_splits_path is not None:
         # only use validation data
-        val_idx = torch.load(args.data_splits)["val_idx"]
+        val_idx = torch.load(data_splits_path)["val_idx"]
         data = Subset(data, val_idx)
     dl = DataLoader(data, batch_size=32, num_workers=4, shuffle=True)
 
@@ -92,7 +102,7 @@ def main(args, rollout=True, n_batches=-1):
 
     labels = torch.cat(labels)
 
-    pos = loadmat(args.sensors_path)["Cor"].T
+    pos = loadmat(sensors_path)["Cor"].T
     pos = np.array([pos[1], pos[0]]).T
 
     if rollout:
@@ -117,7 +127,7 @@ def main(args, rollout=True, n_batches=-1):
         ax2.set_yticks([])
         ax2.set_xlabel("tokens")
         plt.tight_layout()
-        plt.savefig(join(args.result_dir, "rollout.png"), dpi=300)
+        plt.savefig(join(result_dir, "rollout.png"), dpi=300)
 
         # topoplots
         elecs1 = weights1.mean(dim=0)[1:].reshape(20, model.model.hparams.num_tokens)
@@ -141,7 +151,7 @@ def main(args, rollout=True, n_batches=-1):
         axes[0, 0].set_ylabel(data.id2condition(0))
         axes[1, 0].set_ylabel(data.id2condition(1))
         plt.tight_layout(pad=0.1, h_pad=0)
-        plt.savefig(join(args.result_dir, "temporal.png"), dpi=300)
+        plt.savefig(join(result_dir, "temporal.png"), dpi=300)
 
         # averaged temporally
         fig, axes = plt.subplots(ncols=2)
@@ -165,7 +175,7 @@ def main(args, rollout=True, n_batches=-1):
         )
         axes[0].set_title(data.id2condition(0))
         axes[1].set_title(data.id2condition(1))
-        plt.savefig(join(args.result_dir, "temporally-averaged.png"), dpi=300)
+        plt.savefig(join(result_dir, "temporally-averaged.png"), dpi=300)
 
         # averaged temporally, caf - plac
         temporal_agg_fn = "mean"
@@ -207,7 +217,7 @@ def main(args, rollout=True, n_batches=-1):
             cmap="coolwarm",
         )
         plt.tight_layout()
-        plt.savefig(join(args.result_dir, "t-test.png"), dpi=300)
+        plt.savefig(join(result_dir, "t-test.png"), dpi=300)
     else:
         # plot weights without rollout
         weights = torch.cat(weights, dim=1)
@@ -256,22 +266,10 @@ def main(args, rollout=True, n_batches=-1):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--model-path",
+        "--model-dir",
         type=str,
         required=True,
-        help="path to the model checkpoint",
-    )
-    parser.add_argument(
-        "--data-path",
-        type=str,
-        required=True,
-        help="path to the memory mapped data file",
-    )
-    parser.add_argument(
-        "--label-path",
-        type=str,
-        required=True,
-        help="path to the csv file containing labels",
+        help="path to the pytorch-lightning experiment directory",
     )
     parser.add_argument(
         "--sensors-path",
@@ -286,18 +284,31 @@ if __name__ == "__main__":
         help="path to the directory where the figures should be stored",
     )
     parser.add_argument(
-        "--sleep-stage",
-        type=str,
-        required=True,
-        choices=["all", "AWSL", "NREM", "REM"],
-        help="sleep stage for which data should be loaded",
-    )
-    parser.add_argument(
-        "--data-splits",
+        "--data-path",
         type=str,
         default=None,
-        help="path to the data splits path",
+        help="manually specify where the data file is (optional)",
     )
-
+    parser.add_argument(
+        "--label-path",
+        type=str,
+        default=None,
+        help="manually specify where the label file is (optional)",
+    )
     args = parser.parse_args()
-    main(args)
+
+    with open(join(args.model_dir, "hparams.yaml"), "r") as f:
+        hparams = yaml.full_load(f)
+
+    model_path = glob.glob(join(args.model_dir, "checkpoints", "*.ckpt"))[0]
+
+    # run the analysis
+    main(
+        model_path,
+        hparams["data_path"] if args.data_path is None else args.data_path,
+        hparams["label_path"] if args.label_path is None else args.label_path,
+        args.result_dir,
+        args.sensors_path,
+        hparams["sleep_stage"],
+        join(args.model_dir, "splits.pt"),
+    )
