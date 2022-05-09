@@ -1,3 +1,4 @@
+from os.path import join
 import argparse
 from tqdm import tqdm
 from functools import partialmethod
@@ -48,12 +49,12 @@ class attention_wrapper:
         return y, torch.stack(weights)
 
 
-def main(args, rollout=True, stage="NREM", n_batches=100):
+def main(args, rollout=True, stage="NREM", n_batches=2):
     torch.set_grad_enabled(False)
 
     # load model
     model = TransformerModule.load_from_checkpoint(
-        args.model_path, epoch_length=5120
+        args.model_path, num_subjects=40
     ).eval()
     model.freeze()
     model = attention_wrapper(model)
@@ -87,7 +88,7 @@ def main(args, rollout=True, stage="NREM", n_batches=100):
 
     labels = torch.cat(labels)
 
-    pos = loadmat("/home/philipp/Documents/caffeine-sleep/data/Coo_caf.mat")["Cor"].T
+    pos = loadmat(args.sensors_path)["Cor"].T
     pos = np.array([pos[1], pos[0]]).T
 
     if rollout:
@@ -96,11 +97,23 @@ def main(args, rollout=True, stage="NREM", n_batches=100):
         weights1 = weights[labels == 0].mean(dim=0)
         weights2 = weights[labels == 1].mean(dim=0)
 
-        fig, (ax1, ax2) = plt.subplots(ncols=2)
+        fig, (ax1, ax2) = plt.subplots(
+            ncols=2, sharex=True, sharey=True, figsize=(8, 5)
+        )
+        fig.suptitle("attention weight rollout", fontsize=15)
         ax1.imshow(weights1)
         ax1.set_title(data.id2condition(0))
+        ax1.set_xticks([])
+        ax1.set_yticks([])
+        ax1.set_ylabel("tokens")
+        ax1.set_xlabel("tokens")
         ax2.imshow(weights2)
         ax2.set_title(data.id2condition(1))
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+        ax2.set_xlabel("tokens")
+        plt.tight_layout()
+        plt.savefig(join(args.result_dir, "rollout.png"), dpi=300)
 
         # topoplots
         elecs1 = weights1.mean(dim=0)[1:].reshape(20, model.model.hparams.num_tokens)
@@ -110,7 +123,8 @@ def main(args, rollout=True, stage="NREM", n_batches=100):
         vmax = max(elecs1.max(), elecs2.max())
 
         # channels and temporal
-        fig, axes = plt.subplots(nrows=2, ncols=20)
+        fig, axes = plt.subplots(nrows=2, ncols=20, figsize=(12, 3))
+        fig.suptitle("mean attention weights across time and channels", fontsize=15)
         for i, (elec, ax) in enumerate(zip(elecs1.T, axes[0])):
             plot_topomap(
                 elec, pos, axes=ax, show=False, contours=False, vmin=vmin, vmax=vmax
@@ -123,6 +137,7 @@ def main(args, rollout=True, stage="NREM", n_batches=100):
         axes[0, 0].set_ylabel(data.id2condition(0))
         axes[1, 0].set_ylabel(data.id2condition(1))
         plt.tight_layout(pad=0.1, h_pad=0)
+        plt.savefig(join(args.result_dir, "temporal.png"), dpi=300)
 
         # averaged temporally
         fig, axes = plt.subplots(ncols=2)
@@ -146,6 +161,7 @@ def main(args, rollout=True, stage="NREM", n_batches=100):
         )
         axes[0].set_title(data.id2condition(0))
         axes[1].set_title(data.id2condition(1))
+        plt.savefig(join(args.result_dir, "temporally-averaged.png"), dpi=300)
 
         # averaged temporally, caf - plac
         temporal_agg_fn = "max"
@@ -187,7 +203,7 @@ def main(args, rollout=True, stage="NREM", n_batches=100):
             cmap="coolwarm",
         )
         plt.tight_layout()
-        plt.show()
+        plt.savefig(join(args.result_dir, "t-test.png"), dpi=300)
     else:
         # plot weights without rollout
         weights = torch.cat(weights, dim=1)
@@ -252,6 +268,18 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="path to the csv file containing labels",
+    )
+    parser.add_argument(
+        "--sensors-path",
+        type=str,
+        required=True,
+        help="path to the sensor locations file",
+    )
+    parser.add_argument(
+        "--result-dir",
+        type=str,
+        required=True,
+        help="path to the directory where the figures should be stored",
     )
 
     args = parser.parse_args()
