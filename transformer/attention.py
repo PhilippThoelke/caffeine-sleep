@@ -48,7 +48,7 @@ class attention_wrapper:
         return y, torch.stack(weights)
 
 
-def main(args, rollout=True):
+def main(args, rollout=True, stage="NREM", n_batches=100):
     torch.set_grad_enabled(False)
 
     # load model
@@ -59,11 +59,12 @@ def main(args, rollout=True):
     model = attention_wrapper(model)
 
     # load data
-    data = RawDataset(args.data_path, args.label_path)
+    data = RawDataset(args.data_path, args.label_path, stage=stage)
     dl = DataLoader(data, batch_size=32, num_workers=4, shuffle=True)
 
     # extract attention weights
     weights, labels = [], []
+    accs = []
     for x, y, _, _ in tqdm(dl, desc="extracting attention weights"):
         pred, w = model(x)
 
@@ -71,13 +72,19 @@ def main(args, rollout=True):
         w = w[:, mask]
         y = y[mask]
 
+        accs.append(mask.float().mean().item())
+
         if rollout:
             w = attention_rollout(w)
 
         weights.append(w)
         labels.append(y)
-        if len(weights) > 10:
+
+        if len(weights) == n_batches:
             break
+
+    print(f"accuracy: {np.mean(accs):.2f}")
+
     labels = torch.cat(labels)
 
     pos = loadmat("/home/philipp/Documents/caffeine-sleep/data/Coo_caf.mat")["Cor"].T
@@ -104,16 +111,18 @@ def main(args, rollout=True):
 
         # channels and temporal
         fig, axes = plt.subplots(nrows=2, ncols=20)
-        for elec, ax in zip(elecs1.T, axes[0]):
+        for i, (elec, ax) in enumerate(zip(elecs1.T, axes[0])):
             plot_topomap(
                 elec, pos, axes=ax, show=False, contours=False, vmin=vmin, vmax=vmax
             )
+            ax.set_title(f"t={i}")
         for elec, ax in zip(elecs2.T, axes[1]):
             plot_topomap(
                 elec, pos, axes=ax, show=False, contours=False, vmin=vmin, vmax=vmax
             )
         axes[0, 0].set_ylabel(data.id2condition(0))
         axes[1, 0].set_ylabel(data.id2condition(1))
+        plt.tight_layout(pad=0.1, h_pad=0)
 
         # averaged temporally
         fig, axes = plt.subplots(ncols=2)
@@ -139,34 +148,45 @@ def main(args, rollout=True):
         axes[1].set_title(data.id2condition(1))
 
         # averaged temporally, caf - plac
+        temporal_agg_fn = "max"
         caf_id = int(data.id2condition(0) == "PLAC")
-        w = (
-            weights.mean(dim=1)[:, 1:]
-            .reshape(-1, 20, model.model.hparams.num_tokens)
-            .max(dim=2)
-            .values
-        )
+        w = weights.mean(dim=1)[:, 1:].reshape(-1, 20, model.model.hparams.num_tokens)
+        if temporal_agg_fn == "max":
+            w = w.max(dim=2).values
+        elif temporal_agg_fn == "mean":
+            w = w.mean(dim=2)
+        else:
+            raise RuntimeError(f"unknown {temporal_agg_fn}")
         caf = w[labels == caf_id]
         plac = w[labels == (1 - caf_id)]
         mincount = min(len(caf), len(plac))
         caf = caf[:mincount].numpy()
         plac = plac[:mincount].numpy()
-        tval, pval, _ = permutation_t_test(caf - plac, n_permutations=1000, n_jobs=-1)
+        tval, pval, _ = permutation_t_test(caf - plac, n_permutations=10000, n_jobs=-1)
+
+        p_thresh = 0.01
 
         plt.figure()
-        plt.title("CAF - PLAC")
+        plt.title(
+            (
+                f"t-scores of (CAF - PLAC)\n"
+                f"aggregated temporally using {temporal_agg_fn}\n"
+                f"significance at p<{p_thresh}"
+            )
+        )
 
         absmax = max(abs(tval.min()), abs(tval.max()))
         plot_topomap(
             tval,
             pos,
-            mask=pval < 0.05,
+            mask=pval < p_thresh,
             show=False,
             contours=False,
             vmin=-absmax,
             vmax=absmax,
             cmap="coolwarm",
         )
+        plt.tight_layout()
         plt.show()
     else:
         # plot weights without rollout
