@@ -71,4 +71,4 @@ for stage in stages:
         models[stage][condition] = fm
 
 with open(join(result_dir, "fooof-models.pkl"), "wb") as f:
-    pickle.dump(models)
+    pickle.dump(models, f)
