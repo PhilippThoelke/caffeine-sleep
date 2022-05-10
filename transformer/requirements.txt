@@ -1,3 +1,4 @@
 antropy==0.1.4
 mne==1.0.2
 neurokit2==0.1.7
+fooof==1.0.0
