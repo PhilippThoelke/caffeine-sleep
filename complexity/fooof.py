@@ -5,6 +5,7 @@ from scipy.signal import welch, periodogram
 from fooof import FOOOF
 from joblib import Parallel, delayed
 from tqdm import tqdm
+import pickle
 from matplotlib import pyplot as plt
 
 
@@ -59,9 +60,15 @@ for stage in stages:
         freqs = f[0]
 
 
+models = {}
 for stage in stages:
+    models[stage] = {}
     for condition in conditions:
         fm = FOOOF()
         fm.fit(freqs, powers[stage][condition].mean(axis=1), [1, 35])
         fm.plot(plot_peaks="shade", peak_kwargs={"color": "green"})
         plt.savefig(join(result_dir, f"fooof-{stage}-{condition}.png"), dpi=300)
+        models[stage][condition] = fm
+
+with open(join(result_dir, "fooof-models.pkl"), "wb") as f:
+    pickle.dump(models)
