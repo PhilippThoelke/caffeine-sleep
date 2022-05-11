@@ -43,6 +43,11 @@ class TransformerModule(pl.LightningModule):
             x = x.unsqueeze(0)
         # crop sequence to be divisible by the desired number of tokens
         x = x[:, : self.hparams.num_tokens * self.sample_length]
+        # potentially drop some channels
+        if len(self.hparams.ignore_channels) > 0:
+            ch_mask = torch.ones(x.size(2), dtype=torch.bool)
+            ch_mask.scatter_(0, torch.tensor(self.hparams.ignore_channels), False)
+            x = x[..., ch_mask]
         # reshape x from (B x time x elec) to (token x B x window_length)
         x = x.view(x.size(0), self.hparams.num_tokens, self.sample_length, x.size(2))
         x = x.permute(0, 3, 1, 2).reshape(x.size(0), -1, self.sample_length)

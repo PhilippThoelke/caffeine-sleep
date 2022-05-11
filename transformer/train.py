@@ -198,6 +198,13 @@ if __name__ == "__main__":
         type=float,
         help="frequency at which to apply a high pass filter",
     )
+    parser.add_argument(
+        "--ignore-channels",
+        default=[],
+        type=int,
+        help="list of channel indices to ignore",
+        nargs="+",
+    )
 
     args = parser.parse_args()
     main(args)
