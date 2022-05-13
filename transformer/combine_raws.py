@@ -20,6 +20,12 @@ def get_total_num_samples(root, **kwargs):
     return num_samples
 
 
+def combine_stds(mean1, std1, n1, mean2, std2, n2):
+    std = ((n1 - 1) * std1 ** 2 + (n2 - 1) * std2 ** 2) / (n1 + n2 - 1)
+    correction = (n1 * n2 * (mean1 - mean2) ** 2) / ((n1 + n2) * (n1 + n2 - 1))
+    return np.sqrt(std + correction)
+
+
 def combine_raw_files(dest, root, **kwargs):
     shape = (get_total_num_samples(root, **kwargs), 5120, 20)
     fname = (
@@ -38,11 +44,39 @@ def combine_raw_files(dest, root, **kwargs):
     )
 
     paths = get_paths(root, **kwargs)
+    if args.normalize == "grouped":
+        metrics = {}
+        for path in tqdm(
+            paths, desc="estimating groupwise mean and standard deviation"
+        ):
+            subj, stage, _, _, cond = basename(path).split(".")[0].split("_")
+            subj = subj.split("n")[0]
+
+            data = np.load(path)
+
+            key = (subj, stage, cond)
+            if key in metrics:
+                count = data.size
+                # mean
+                pmean, pstd, pcount = metrics[key]
+                mean = (count * data.mean() + pcount * pmean) / (count + pcount)
+                # std
+                std = combine_stds(data.mean(), data.std(), count, pmean, pstd, pcount)
+
+                metrics[key] = mean, std, count
+            else:
+                metrics[key] = data.mean(), data.std(), data.size
+
     curr_idx = 0
-    for path in tqdm(paths):
+    for path in tqdm(paths, desc="combining data into a single file"):
         subj, stage, _, _, cond = basename(path).split(".")[0].split("_")
         subj = subj.split("n")[0]
+
         data = np.load(path)
+        if args.normalize == "grouped":
+            mean, std = metrics[(subj, stage, cond)][:2]
+            data = (data - mean) / std
+
         file[curr_idx : curr_idx + data.shape[0]] = data
         meta_info.iloc[curr_idx : curr_idx + data.shape[0]] = [
             [subj, stage, cond]
@@ -79,6 +113,13 @@ if __name__ == "__main__":
         default="*",
         choices=["CAF", "PLAC"],
         help="glob string matching the condition (caffeine/placebo)",
+    )
+    parser.add_argument(
+        "--normalize",
+        type=str,
+        default="grouped",
+        choices=["none", "grouped"],
+        help="the type of normalization to apply to the data",
     )
     args = parser.parse_args()
 

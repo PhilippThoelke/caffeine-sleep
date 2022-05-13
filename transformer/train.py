@@ -42,15 +42,17 @@ def main(args):
     val_dl = DataLoader(val_data, batch_size=args.batch_size, num_workers=4)
 
     # compute data mean and std
-    result = [
-        (sample[0].mean(), sample[0].std())
-        for sample in tqdm(
-            DataLoader(train_data, batch_size=256, num_workers=4),
-            desc="extracting mean and standard deviation",
-        )
-    ]
-    means, stds = zip(*result)
-    mean, std = torch.tensor(means).mean(), torch.tensor(stds).mean()
+    mean, std = 0, 1
+    if args.standardize:
+        result = [
+            (sample[0].mean(), sample[0].std())
+            for sample in tqdm(
+                DataLoader(train_data, batch_size=256, num_workers=4),
+                desc="extracting mean and standard deviation",
+            )
+        ]
+        means, stds = zip(*result)
+        mean, std = torch.tensor(means).mean(), torch.tensor(stds).mean()
 
     # store the epoch length of the dataset
     args.epoch_length = train_data[0][0].size(0)
@@ -204,6 +206,12 @@ if __name__ == "__main__":
         type=int,
         help="list of channel indices to ignore",
         nargs="+",
+    )
+    parser.add_argument(
+        "--standardize",
+        default=False,
+        type=bool,
+        help="whether to standardize the data using a global mean and std",
     )
 
     args = parser.parse_args()
