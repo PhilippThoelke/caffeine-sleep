@@ -67,7 +67,7 @@ class RawDataset(Dataset):
         return len(self.indices)
 
     def __getitem__(self, idx):
-        x = self.data[self.indices[idx]].copy().astype(float)
+        x = np.array(self.data[self.indices[idx]]).astype(float)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
 
