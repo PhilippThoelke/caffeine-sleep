@@ -57,7 +57,7 @@ class TransformerModule(pl.LightningModule):
         # apply encoder model
         x = self.encoder(x)
         # apply output model
-        y = self.outnet(x).squeeze()
+        y = self.outnet(x).squeeze(dim=1)
 
         if return_logits and return_representation:
             return y, x
