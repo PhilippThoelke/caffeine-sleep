@@ -17,7 +17,10 @@ class TransformerModule(pl.LightningModule):
 
         # transformer encoder
         self.encoder = EEGEncoder(
-            self.hparams.embedding_dim, self.hparams.num_layers, self.sample_length
+            self.hparams.embedding_dim,
+            self.hparams.num_layers,
+            self.sample_length,
+            dropout=self.hparams.dropout,
         )
 
         # output network
@@ -176,7 +179,10 @@ class EEGEncoder(nn.Module):
             dim_feedforward=embedding_dim * 2,
             dropout=dropout,
         )
-        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers)
+        self.encoder = nn.TransformerEncoder(
+            encoder_layer, num_layers, nn.LayerNorm(embedding_dim)
+        )
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         # linear projection into embedding dimension
@@ -186,7 +192,7 @@ class EEGEncoder(nn.Module):
         # prepend class token to the sequence
         x = torch.cat([self.class_token[None, None].repeat(1, x.size(1), 1), x], dim=0)
         # pass sequence through the transformer and extract class tokens
-        return self.encoder(x)[0]
+        return self.dropout(self.encoder(x)[0])
 
 
 class PositionalEncoding(nn.Module):
