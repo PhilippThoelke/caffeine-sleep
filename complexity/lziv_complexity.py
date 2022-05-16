@@ -15,7 +15,7 @@ data_dir = "transformer/data/200/"
 result_dir = "results/lziv/"
 
 use_psd = False
-use_neurokit = True
+use_neurokit = False
 
 stages = ["AWSL", "NREM", "REM"]
 conditions = ["CAF", "PLAC"]
@@ -38,9 +38,11 @@ def complexity(epoch, use_psd=False, use_neurokit=False):
 
 
 result = {}
+lziv_avg = {}
 for stage in stages:
     result[stage] = {}
     data = {}
+    lziv_avg[stage] = {}
     for condition in conditions:
         print(f"processing {stage} {condition}:")
         # load data
@@ -60,6 +62,7 @@ for stage in stages:
     drop_subjects = set.symmetric_difference(*map(set, data.values()))
 
     for condition in conditions:
+        lziv_avg[stage][condition] = {}
         result[stage][condition] = []
         for subject in tqdm(data[condition].keys(), desc="estimating complexity"):
             if subject in drop_subjects:
@@ -68,7 +71,9 @@ for stage in stages:
             res = Parallel(n_jobs=-1)(
                 delayed(complexity)(epoch, use_psd, use_neurokit) for epoch in dat
             )
-            result[stage][condition].append(np.array(res).reshape(-1, 20).mean(axis=0))
+            comp = np.array(res).reshape(-1, 20).mean(axis=0)
+            result[stage][condition].append(comp)
+            lziv_avg[stage][condition][subject] = comp
         result[stage][condition] = np.stack(result[stage][condition])
 
     result[stage] = stats.permutation_t_test(
@@ -80,4 +85,4 @@ for stage in stages:
 
 
 with open(join(result_dir, f"lziv{'_psd' if use_psd else ''}.pkl"), "wb") as f:
-    pickle.dump(result, f)
+    pickle.dump((lziv_avg, result), f)
