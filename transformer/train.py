@@ -23,6 +23,8 @@ def main(args):
     data = RawDataset(
         args.data_path,
         args.label_path,
+        args.epoch_length,
+        args.num_channels,
         stage=args.sleep_stage,
         sample_rate=args.sample_rate,
         notch_freq=args.notch_freq,
@@ -53,9 +55,6 @@ def main(args):
         ]
         means, stds = zip(*result)
         mean, std = torch.tensor(means).mean(), torch.tensor(stds).mean()
-
-    # store the epoch length of the dataset
-    args.epoch_length = train_data[0][0].size(0)
 
     # define model
     module = TransformerModule(args, mean, std, num_subjects=len(data.subject_mapping))
@@ -92,6 +91,15 @@ if __name__ == "__main__":
         help="path to the csv file containing labels",
     )
     parser.add_argument(
+        "--epoch-length",
+        type=int,
+        default=5120,
+        help="number of samples in each epoch",
+    )
+    parser.add_argument(
+        "--num-channels", type=int, default=20, help="number of channels",
+    )
+    parser.add_argument(
         "--sleep-stage",
         type=str,
         default="all",
@@ -99,10 +107,7 @@ if __name__ == "__main__":
         help="sleep stage(s) to use",
     )
     parser.add_argument(
-        "--learning-rate",
-        default=5e-4,
-        type=float,
-        help="base learning rate",
+        "--learning-rate", default=5e-4, type=float, help="base learning rate",
     )
     parser.add_argument(
         "--subject-lr",
@@ -123,10 +128,7 @@ if __name__ == "__main__":
         help="frequency at which the adversarial and subject optimizers run (0 disables adversarial training)",
     )
     parser.add_argument(
-        "--batch-size",
-        default=32,
-        type=int,
-        help="batch size",
+        "--batch-size", default=32, type=int, help="batch size",
     )
     parser.add_argument(
         "--val-subject-ratio",
@@ -153,28 +155,16 @@ if __name__ == "__main__":
         help="number of encoder layers in the transformer",
     )
     parser.add_argument(
-        "--dropout",
-        default=0.1,
-        type=float,
-        help="dropout ratio",
+        "--dropout", default=0.1, type=float, help="dropout ratio",
     )
     parser.add_argument(
-        "--weight-decay",
-        default=0.01,
-        type=float,
-        help="weight decay",
+        "--weight-decay", default=0.01, type=float, help="weight decay",
     )
     parser.add_argument(
-        "--warmup-steps",
-        default=5000,
-        type=int,
-        help="number of steps for lr warmup",
+        "--warmup-steps", default=5000, type=int, help="number of steps for lr warmup",
     )
     parser.add_argument(
-        "--max-epochs",
-        default=300,
-        type=int,
-        help="maximum number of epochs",
+        "--max-epochs", default=300, type=int, help="maximum number of epochs",
     )
     parser.add_argument(
         "--sample-rate",
