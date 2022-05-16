@@ -32,7 +32,12 @@ for subject in subjects:
             offset += epoch_steps
 
 shape = len(epochs), epochs[0].shape[1], epochs[0].shape[0]
-fname = f"nsamp_{shape[0]}-runs_{','.join(map(str, runs))}-example_dset"
+fname = (
+    f"nsamp_{shape[0]}-"
+    f"eplen_{epoch_duration}-"
+    f"runs_{','.join(map(str, runs))}-"
+    f"example_dset"
+)
 file = np.memmap(
     join(result_dir, "raw-" + fname + ".dat"), mode="w+", dtype=np.float32, shape=shape
 )
