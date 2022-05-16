@@ -146,7 +146,7 @@ class TransformerModule(pl.LightningModule):
     def training_epoch_end(self, *args, **kwargs):
         opt = self.optimizers()
         if isinstance(opt, list):
-            opt = optimizers[0]
+            opt = opt[0]
         self.log("lr", opt.param_groups[0]["lr"])
         return super().training_epoch_end(*args, **kwargs)
 
