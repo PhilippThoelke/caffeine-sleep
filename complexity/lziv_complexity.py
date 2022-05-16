@@ -64,7 +64,7 @@ for stage in stages:
     for condition in conditions:
         lziv_avg[stage][condition] = {}
         result[stage][condition] = []
-        for subject in tqdm(data[condition].keys(), desc="estimating complexity"):
+        for subject in tqdm(sorted(data[condition].keys()), desc="estimating complexity"):
             if subject in drop_subjects:
                 continue
             dat = data[condition][subject].transpose((0, 2, 1)).reshape(-1, 5120)
