@@ -14,7 +14,7 @@ def extract_baseline_eyes(subjects, runs, epoch_duration):
     epochs = []
     subject_labels = []
     labels = []
-    run2label = {1: "eyes open", 2: "eyes open"}
+    run2label = {1: "eyes open", 2: "eyes closed"}
     for subject in subjects:
         for run in runs:
             raw_fnames = eegbci.load_data(subject, run)
