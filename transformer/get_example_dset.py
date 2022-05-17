@@ -27,7 +27,7 @@ def extract_baseline_eyes(subjects, runs, epoch_duration):
             for _ in range(data.shape[1] // epoch_steps):
                 epochs.append(data[:, offset : offset + epoch_steps].astype(np.float32))
                 subject_labels.append(subject)
-                labels.append(run2label)
+                labels.append(run2label[run])
                 offset += epoch_steps
     return epochs, subject_labels, labels
 
