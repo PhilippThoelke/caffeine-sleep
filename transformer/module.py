@@ -188,7 +188,7 @@ class MultiHeadAttention(nn.Module):
 class TransformerEncoderLayer(nn.Module):
     def __init__(self, embedding_dim, nhead=8, dim_feedforward=2048, dropout=0.1):
         super().__init__()
-        self.norm = nn.LayerNorm(embedding_dim)
+        self.norm1 = nn.LayerNorm(embedding_dim)
         self.mha = MultiHeadAttention(embedding_dim, nhead, dropout=dropout)
         self.ff = nn.Sequential(
             nn.Linear(embedding_dim, dim_feedforward),
@@ -199,9 +199,8 @@ class TransformerEncoderLayer(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        x = self.norm(x)
-        x = self.mha(x)[0]
-        x = self.ff(x)
+        x = self.mha(self.norm1(x))[0] + x
+        x = self.ff(x) + x
         return self.dropout(x)
 
 
