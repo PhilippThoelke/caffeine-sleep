@@ -60,7 +60,16 @@ def main(args):
     module = TransformerModule(args, mean, std, num_subjects=len(data.subject_mapping))
 
     # define trainer instance
-    trainer = pl.Trainer(accelerator="auto", devices="auto", max_epochs=args.max_epochs)
+    trainer = pl.Trainer(
+        accelerator="auto",
+        devices="auto",
+        max_epochs=args.max_epochs,
+        callbacks=[
+            pl.callbacks.EarlyStopping(
+                "val_loss", patience=args.early_stopping_patience, mode="min"
+            )
+        ],
+    )
 
     # store train val splits
     makedirs(trainer.log_dir, exist_ok=True)
@@ -97,7 +106,10 @@ if __name__ == "__main__":
         help="number of samples in each epoch",
     )
     parser.add_argument(
-        "--num-channels", type=int, default=20, help="number of channels",
+        "--num-channels",
+        type=int,
+        default=20,
+        help="number of channels",
     )
     parser.add_argument(
         "--sleep-stage",
@@ -107,7 +119,16 @@ if __name__ == "__main__":
         help="sleep stage(s) to use",
     )
     parser.add_argument(
-        "--learning-rate", default=5e-4, type=float, help="base learning rate",
+        "--learning-rate",
+        default=5e-4,
+        type=float,
+        help="base learning rate",
+    )
+    parser.add_argument(
+        "--early-stopping-patience",
+        default=10,
+        type=int,
+        help="number of epochs to continue training if val loss doesn't improve anymore",
     )
     parser.add_argument(
         "--subject-lr",
@@ -128,7 +149,10 @@ if __name__ == "__main__":
         help="frequency at which the adversarial and subject optimizers run (0 disables adversarial training)",
     )
     parser.add_argument(
-        "--batch-size", default=32, type=int, help="batch size",
+        "--batch-size",
+        default=32,
+        type=int,
+        help="batch size",
     )
     parser.add_argument(
         "--val-subject-ratio",
@@ -155,16 +179,28 @@ if __name__ == "__main__":
         help="number of encoder layers in the transformer",
     )
     parser.add_argument(
-        "--dropout", default=0.1, type=float, help="dropout ratio",
+        "--dropout",
+        default=0.1,
+        type=float,
+        help="dropout ratio",
     )
     parser.add_argument(
-        "--weight-decay", default=0.01, type=float, help="weight decay",
+        "--weight-decay",
+        default=0.01,
+        type=float,
+        help="weight decay",
     )
     parser.add_argument(
-        "--warmup-steps", default=5000, type=int, help="number of steps for lr warmup",
+        "--warmup-steps",
+        default=5000,
+        type=int,
+        help="number of steps for lr warmup",
     )
     parser.add_argument(
-        "--max-epochs", default=300, type=int, help="maximum number of epochs",
+        "--max-epochs",
+        default=300,
+        type=int,
+        help="maximum number of epochs",
     )
     parser.add_argument(
         "--sample-rate",
