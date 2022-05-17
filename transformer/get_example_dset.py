@@ -7,13 +7,14 @@ from mne.datasets import eegbci
 
 
 result_dir = "transformer/data/"
-target_type = "fist-motion"  # baseline-eyes, fist-motion
+target_type = "baseline-eyes"  # baseline-eyes, fist-motion
 
 
 def extract_baseline_eyes(subjects, runs, epoch_duration):
     epochs = []
     subject_labels = []
     labels = []
+    run2label = {1: "eyes open", 2: "eyes open"}
     for subject in subjects:
         for run in runs:
             raw_fnames = eegbci.load_data(subject, run)
@@ -26,7 +27,7 @@ def extract_baseline_eyes(subjects, runs, epoch_duration):
             for _ in range(data.shape[1] // epoch_steps):
                 epochs.append(data[:, offset : offset + epoch_steps].astype(np.float32))
                 subject_labels.append(subject)
-                labels.append(run)
+                labels.append(run2label)
                 offset += epoch_steps
     return epochs, subject_labels, labels
 
@@ -69,6 +70,7 @@ epochs, subject_labels, labels = extract_epochs(target_type)
 
 shape = len(epochs), epochs[0].shape[1], epochs[0].shape[0]
 fname = f"nsamp_{shape[0]}-eplen_{shape[1]}-example_{target_type}"
+print("\nSaving raw data...", end="")
 file = np.memmap(
     join(result_dir, "raw-" + fname + ".dat"), mode="w+", dtype=np.float32, shape=shape
 )
@@ -82,5 +84,8 @@ for i in range(shape[0]):
     file[i] = epochs[i].T
     file.flush()
     meta_info.iloc[i] = [subject_labels[i], -1, labels[i]]
+print("done")
 
+print("Saving metadata...", end="")
 meta_info.to_csv(join(result_dir, "label-" + fname + ".csv"))
+print("done")
