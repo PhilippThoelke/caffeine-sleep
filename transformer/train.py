@@ -67,7 +67,8 @@ def main(args):
         callbacks=[
             pl.callbacks.EarlyStopping(
                 "val_loss", patience=args.early_stopping_patience, mode="min"
-            )
+            ),
+            pl.callbacks.ModelCheckpoint(monitor="val_acc", mode="max"),
         ],
     )
 
