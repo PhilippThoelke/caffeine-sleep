@@ -163,6 +163,48 @@ class TransformerModule(pl.LightningModule):
         return super().optimizer_step(*args, **kwargs)
 
 
+class MultiHeadAttention(nn.Module):
+    def __init__(self, embedding_dim, nhead, dropout=0.1):
+        super().__init__()
+        self.embedding_dim = embedding_dim
+        self.nhead = nhead
+        self.qkv = nn.Linear(embedding_dim, embedding_dim * 3)
+        self.out = nn.Linear(embedding_dim, embedding_dim)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        q, k, v = self.qkv(x).split(self.embedding_dim, dim=-1)
+        q = q.reshape(q.size(0), q.size(1) * self.nhead, -1).permute(1, 0, 2)
+        k = k.reshape(k.size(0), k.size(1) * self.nhead, -1).permute(1, 2, 0)
+        attn = torch.softmax(q @ k, dim=-1)
+        v = v.reshape(v.size(0), v.size(1) * self.nhead, -1).permute(1, 0, 2)
+        o = attn @ v
+        o = o.permute(1, 0, 2).reshape(x.shape)
+        o = self.out(o)
+        o = self.dropout(o)
+        return o, attn.reshape(x.size(1), self.nhead, x.size(0), x.size(0))
+
+
+class TransformerEncoderLayer(nn.Module):
+    def __init__(self, embedding_dim, nhead=8, dim_feedforward=2048, dropout=0.1):
+        super().__init__()
+        self.norm = nn.LayerNorm(embedding_dim)
+        self.mha = MultiHeadAttention(embedding_dim, nhead, dropout=dropout)
+        self.ff = nn.Sequential(
+            nn.Linear(embedding_dim, dim_feedforward),
+            nn.ReLU(),
+            nn.Linear(dim_feedforward, embedding_dim),
+            nn.ReLU(),
+        )
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        x = self.norm(x)
+        x = self.mha(x)[0]
+        x = self.ff(x)
+        return self.dropout(x)
+
+
 class EEGEncoder(nn.Module):
     def __init__(self, embedding_dim, num_layers, sample_length, dropout=0.1):
         super().__init__()
@@ -173,15 +215,18 @@ class EEGEncoder(nn.Module):
         # class token
         self.register_parameter("class_token", nn.Parameter(torch.randn(embedding_dim)))
         # transformer encoder
-        encoder_layer = nn.TransformerEncoderLayer(
-            embedding_dim,
-            nhead=8,
-            dim_feedforward=embedding_dim * 2,
-            dropout=dropout,
+        self.encoder = nn.Sequential(
+            *[
+                TransformerEncoderLayer(
+                    embedding_dim,
+                    nhead=8,
+                    dim_feedforward=embedding_dim * 2,
+                    dropout=dropout,
+                )
+                for _ in range(num_layers)
+            ]
         )
-        self.encoder = nn.TransformerEncoder(
-            encoder_layer, num_layers, nn.LayerNorm(embedding_dim)
-        )
+        self.norm = nn.LayerNorm(embedding_dim)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
@@ -192,7 +237,8 @@ class EEGEncoder(nn.Module):
         # prepend class token to the sequence
         x = torch.cat([self.class_token[None, None].repeat(1, x.size(1), 1), x], dim=0)
         # pass sequence through the transformer and extract class tokens
-        return self.dropout(self.encoder(x)[0])
+        x = self.encoder(x)[0]
+        return self.dropout(self.norm(x))
 
 
 class PositionalEncoding(nn.Module):
