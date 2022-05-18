@@ -35,6 +35,8 @@ class RawDataset(Dataset):
         self.notch_freq = notch_freq
         self.low_pass = low_pass
         self.high_pass = high_pass
+        self.nchannels = nchannels
+        self.epoch_length = epoch_length
 
         # memory map the raw data
         name, nsamp = path.basename(data_file).split("-")[1].split("_")
