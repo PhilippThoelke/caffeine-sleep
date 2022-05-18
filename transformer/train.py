@@ -66,7 +66,7 @@ def main(args):
         max_epochs=args.max_epochs,
         callbacks=[
             pl.callbacks.EarlyStopping(
-                "val_loss", patience=args.early_stopping_patience, mode="min"
+                "val_acc", patience=args.early_stopping_patience, mode="max"
             ),
             pl.callbacks.ModelCheckpoint(monitor="val_acc", mode="max"),
         ],
