@@ -44,7 +44,7 @@ def combine_raw_files(dest, root, **kwargs):
     )
 
     paths = get_paths(root, **kwargs)
-    if args.normalize == "grouped":
+    if args.normalize != "none":
         metrics = {}
         for path in tqdm(
             paths, desc="estimating groupwise mean and standard deviation"
@@ -54,7 +54,10 @@ def combine_raw_files(dest, root, **kwargs):
 
             data = np.load(path)
 
-            key = (subj, stage, cond)
+            if args.normalize == "grouped":
+                key = (subj, stage, cond)
+            elif args.normalize == "subject+stage":
+                key = (subj, stage)
             if key in metrics:
                 count = data.size
                 # mean
@@ -73,8 +76,13 @@ def combine_raw_files(dest, root, **kwargs):
         subj = subj.split("n")[0]
 
         data = np.load(path)
-        if args.normalize == "grouped":
-            mean, std = metrics[(subj, stage, cond)][:2]
+        if args.normalize != "none":
+            if args.normalize == "grouped":
+                key = (subj, stage, cond)
+            elif args.normalize == "subject+stage":
+                key = (subj, stage)
+
+            mean, std = metrics[key][:2]
             data = (data - mean) / std
 
         file[curr_idx : curr_idx + data.shape[0]] = data
@@ -117,8 +125,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--normalize",
         type=str,
-        default="grouped",
-        choices=["none", "grouped"],
+        default="subject+stage",
+        choices=["none", "grouped", "subject+stage"],
         help="the type of normalization to apply to the data",
     )
     args = parser.parse_args()
