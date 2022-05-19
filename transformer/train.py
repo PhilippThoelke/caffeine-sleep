@@ -192,6 +192,13 @@ if __name__ == "__main__":
         help="weight decay",
     )
     parser.add_argument(
+        "--shuffle-tokens",
+        default="none",
+        type=str,
+        choices=["none", "channels", "temporal", "all"],
+        help="type of random reordering of tokens",
+    )
+    parser.add_argument(
         "--warmup-steps",
         default=5000,
         type=int,

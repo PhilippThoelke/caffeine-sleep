@@ -51,8 +51,16 @@ class TransformerModule(pl.LightningModule):
             ch_mask = torch.ones(x.size(2), dtype=torch.bool)
             ch_mask.scatter_(0, torch.tensor(self.hparams.ignore_channels), False)
             x = x[..., ch_mask]
-        # reshape x from (B x time x elec) to (token x B x window_length)
+        # reshape x from (B x time x elec) to (B x token x signal x channel)
         x = x.view(x.size(0), self.hparams.num_tokens, self.sample_length, x.size(2))
+        # randomly reorder tokens
+        if self.training and self.hparams.shuffle_tokens != "none":
+            for i in range(x.size(0)):
+                if self.hparams.shuffle_tokens in ["temporal", "all"]:
+                    x[i] = x[i, torch.randperm(x.size(1), device=x.device)]
+                if self.hparams.shuffle_tokens in ["channels", "all"]:
+                    x[i] = x[i, :, :, torch.randperm(x.size(3), device=x.device)]
+        # reshape x from (B x token x signal x channel) to (token x B x window_length)
         x = x.permute(0, 3, 1, 2).reshape(x.size(0), -1, self.sample_length)
         x = x.permute(1, 0, 2)
         # standardize data
