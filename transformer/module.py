@@ -14,7 +14,12 @@ class TransformerModule(pl.LightningModule):
         self.register_buffer("mean", torch.scalar_tensor(mean))
         self.register_buffer("std", torch.scalar_tensor(std))
 
-        self.sample_length = self.hparams.used_data_length // self.hparams.num_tokens
+        if self.hparams.used_data_length is None:
+            self.sample_length = self.hparams.epoch_length // self.hparams.num_tokens
+        else:
+            self.sample_length = (
+                self.hparams.used_data_length // self.hparams.num_tokens
+            )
 
         # transformer encoder
         self.encoder = EEGEncoder(

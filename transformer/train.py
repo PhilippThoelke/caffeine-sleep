@@ -251,9 +251,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--used-data-length",
-        default=5120,
+        default=None,
         type=int,
-        help="amount of samples to actually use from each epoch",
+        help="amount of samples to actually use from each epoch (default: use full epoch)",
     )
 
     args = parser.parse_args()
