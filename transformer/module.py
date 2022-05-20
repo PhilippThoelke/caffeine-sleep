@@ -46,8 +46,9 @@ class TransformerModule(pl.LightningModule):
             x = x.unsqueeze(0)
         # crop sequence to be divisible by the desired number of tokens
         cut_length = self.hparams.num_tokens * self.sample_length
-        offset = torch.randint(x.size(1) - cut_length, (1,), device=x.device)
-        x = x[:, offset : offset + cut_length]
+        if cut_length < x.size(1):
+            offset = torch.randint(0, x.size(1) - cut_length, (1,), device=x.device)
+            x = x[:, offset : offset + cut_length]
         # potentially drop some channels
         if len(self.hparams.ignore_channels) > 0:
             ch_mask = torch.ones(x.size(2), dtype=torch.bool)
