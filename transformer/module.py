@@ -13,6 +13,7 @@ class TransformerModule(pl.LightningModule):
         self.register_buffer("mean", torch.scalar_tensor(mean))
         self.register_buffer("std", torch.scalar_tensor(std))
 
+        self.class_weights = torch.tensor(self.hparams.class_weights)
         self.sample_length = self.hparams.used_data_length // self.hparams.num_tokens
 
         # transformer encoder
@@ -101,7 +102,9 @@ class TransformerModule(pl.LightningModule):
 
         if optimizer_idx is None or optimizer_idx == 0:
             # loss
-            loss = F.binary_cross_entropy_with_logits(logits, condition.float())
+            loss = F.binary_cross_entropy_with_logits(
+                logits, condition.float(), self.class_weights[condition]
+            )
             self.log(f"{running_stage}_loss", loss)
 
             # accuracy

@@ -69,6 +69,13 @@ class RawDataset(Dataset):
         self.stage_ids, self.stage_mapping = label["stage"].factorize()
         self.condition_ids, self.condition_mapping = label["condition"].factorize()
 
+    def class_weights(self, indices=None):
+        classes = self.condition_ids
+        if indices is not None:
+            classes = classes[indices]
+        counts = np.unique(classes, return_counts=True)[1]
+        return (counts / counts.mean()).tolist()
+
     def __len__(self):
         return len(self.indices)
 

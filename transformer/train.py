@@ -38,6 +38,8 @@ def main(args):
     train_dl = DataLoader(
         train_data, batch_size=args.batch_size, shuffle=True, num_workers=4
     )
+    # store training class weights for use inside the lightning module
+    args.class_weights = data.class_weights(idx_train)
 
     # val subset
     val_data = Subset(data, idx_val)
