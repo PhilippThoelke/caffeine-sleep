@@ -1,3 +1,4 @@
+import argparse
 from os.path import join
 import glob
 from functools import partial
@@ -119,4 +120,25 @@ def main(model_dir, data_dir, data_name):
 
 
 if __name__ == "__main__":
-    main("transformer/models/caffeine", "transformer/data", "nsamp_19229-full")
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model-dir",
+        type=str,
+        required=True,
+        help="path to the model checkpoint's log directory",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=str,
+        required=True,
+        help="path to the dataset files",
+    )
+    parser.add_argument(
+        "--data-name",
+        type=str,
+        required=True,
+        help="name of the dataset (between 'raw/label-' and '.dat/.csv')",
+    )
+    args = parser.parse_args()
+
+    main(args.model_dir, args.data_dir, args.data_name)
