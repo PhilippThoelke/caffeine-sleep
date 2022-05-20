@@ -10,10 +10,10 @@ class TransformerModule(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters(hparams)
 
+        self.register_buffer("class_weights", torch.tensor(self.hparams.class_weights))
         self.register_buffer("mean", torch.scalar_tensor(mean))
         self.register_buffer("std", torch.scalar_tensor(std))
 
-        self.class_weights = torch.tensor(self.hparams.class_weights)
         self.sample_length = self.hparams.used_data_length // self.hparams.num_tokens
 
         # transformer encoder
