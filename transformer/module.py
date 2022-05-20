@@ -13,7 +13,7 @@ class TransformerModule(pl.LightningModule):
         self.register_buffer("mean", torch.scalar_tensor(mean))
         self.register_buffer("std", torch.scalar_tensor(std))
 
-        self.sample_length = self.hparams.epoch_length // self.hparams.num_tokens
+        self.sample_length = self.hparams.used_data_length // self.hparams.num_tokens
 
         # transformer encoder
         self.encoder = EEGEncoder(
@@ -45,7 +45,9 @@ class TransformerModule(pl.LightningModule):
         if x.ndim == 2:
             x = x.unsqueeze(0)
         # crop sequence to be divisible by the desired number of tokens
-        x = x[:, : self.hparams.num_tokens * self.sample_length]
+        cut_length = self.hparams.num_tokens * self.sample_length
+        offset = torch.randint(x.size(1) - cut_length, (1,), device=x.device)
+        x = x[:, offset : offset + cut_length]
         # potentially drop some channels
         if len(self.hparams.ignore_channels) > 0:
             ch_mask = torch.ones(x.size(2), dtype=torch.bool)

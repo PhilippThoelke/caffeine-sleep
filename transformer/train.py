@@ -247,6 +247,12 @@ if __name__ == "__main__":
         type=bool,
         help="whether to standardize the data using a global mean and std",
     )
+    parser.add_argument(
+        "--used-data-length",
+        default=5120,
+        type=int,
+        help="amount of samples to actually use from each epoch",
+    )
 
     args = parser.parse_args()
     main(args)
