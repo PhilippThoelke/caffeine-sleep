@@ -120,6 +120,8 @@ def main(model_dir, data_dir, data_name):
             subjects,
             model.hparams,
             data.dataset.condition_mapping,
+            data.dataset.stage_mapping,
+            data.dataset.subject_mapping,
         ),
         join(model_dir, "attention.pt"),
     )
