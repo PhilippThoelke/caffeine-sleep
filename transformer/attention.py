@@ -82,9 +82,9 @@ def main(model_dir, data_dir, data_name):
 
     # iterate over the dataset
     acc = 0
-    attn, predictions, labels, confidences = [], [], [], []
+    attn, predictions, labels, stages, subjects, confidences = [], [], [], [], [], []
     prog = tqdm(dl, desc="extracting attention weights")
-    for i, (x, y, _, _) in enumerate(prog):
+    for i, (x, y, stage, subj) in enumerate(prog):
         # extract attention weights
         with Attention(model) as a:
             pred = model(x)
@@ -94,6 +94,8 @@ def main(model_dir, data_dir, data_name):
         labels.append(y)
         predictions.append((pred > 0.5).int())
         confidences.append(((pred - 0.5).abs() * 2))
+        stages.append(stage)
+        subjects.append(subj)
 
         # compute batchwise accuracy
         acc += ((pred > 0.5).int() == y).float().mean().item()
@@ -105,6 +107,8 @@ def main(model_dir, data_dir, data_name):
     labels = torch.cat(labels)
     predictions = torch.cat(predictions)
     confidences = torch.cat(confidences)
+    stages = torch.cat(stages)
+    subjects = torch.cat(subjects)
 
     torch.save(
         (
@@ -112,6 +116,8 @@ def main(model_dir, data_dir, data_name):
             confidences,
             predictions,
             labels,
+            stages,
+            subjects,
             model.hparams,
             data.dataset.condition_mapping,
         ),
