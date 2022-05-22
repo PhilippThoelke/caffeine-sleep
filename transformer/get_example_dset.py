@@ -42,7 +42,7 @@ def extract_fist_motion(subjects, runs, epoch_duration):
         raw = concatenate_raws(raws)
 
         curr_epochs = mne.Epochs(
-            raw, *raw.find_edf_events(), tmin=-1, tmax=epoch_duration - 1, preload=True
+            raw, *mne.events_from_annotations(raw), tmin=-1, tmax=epoch_duration - 1, preload=True
         )
         if curr_epochs.get_data().shape[-1] != (epoch_duration * 160 + 1):
             # skip runs which don't have a sampling frequency of 160
