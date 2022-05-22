@@ -268,5 +268,5 @@ class PositionalEncoding(nn.Module):
         self.encodings = nn.Embedding(max_len, d_model)
 
     def forward(self, x):
-        x = x + torch.arange(x.size(0)).view(-1, 1, 1)
+        x = x + self.encodings(torch.arange(x.size(0), device=x.device)).unsqueeze(1)
         return self.dropout(x)
