@@ -74,7 +74,8 @@ class RawDataset(Dataset):
         if indices is not None:
             classes = classes[indices]
         counts = np.unique(classes, return_counts=True)[1]
-        return (counts / counts.mean()).tolist()
+        weights = counts / counts.mean()
+        return (1 / weights).tolist()
 
     def __len__(self):
         return len(self.indices)
