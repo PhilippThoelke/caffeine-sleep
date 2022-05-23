@@ -192,12 +192,13 @@ class MultiHeadAttention(nn.Module):
         self.qkv = nn.Linear(embedding_dim, embedding_dim * 3)
         self.out = nn.Linear(embedding_dim, embedding_dim)
         self.dropout = nn.Dropout(dropout)
+        self.scale_factor = math.sqrt(embedding_dim / nhead)
 
     def forward(self, x):
         q, k, v = self.qkv(x).split(self.embedding_dim, dim=-1)
         q = q.reshape(q.size(0), q.size(1) * self.nhead, -1).permute(1, 0, 2)
         k = k.reshape(k.size(0), k.size(1) * self.nhead, -1).permute(1, 2, 0)
-        attn = torch.softmax(q @ k, dim=-1)
+        attn = torch.softmax((q @ k) / self.scale_factor, dim=-1)
         v = v.reshape(v.size(0), v.size(1) * self.nhead, -1).permute(1, 0, 2)
         o = attn @ v
         o = o.permute(1, 0, 2).reshape(x.shape)
@@ -209,7 +210,8 @@ class MultiHeadAttention(nn.Module):
 class TransformerEncoderLayer(nn.Module):
     def __init__(self, embedding_dim, nhead=8, dim_feedforward=2048, dropout=0.1):
         super().__init__()
-        self.norm = nn.LayerNorm(embedding_dim)
+        self.norm1 = nn.LayerNorm(embedding_dim)
+        self.norm2 = nn.LayerNorm(embedding_dim)
         self.mha = MultiHeadAttention(embedding_dim, nhead, dropout=dropout)
         self.ff = nn.Sequential(
             nn.Linear(embedding_dim, dim_feedforward),
@@ -220,8 +222,8 @@ class TransformerEncoderLayer(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        x = self.mha(self.norm(x))[0] + x
-        x = self.ff(x) + x
+        x = self.mha(self.norm1(x))[0] + x
+        x = self.ff(self.norm2(x)) + x
         return self.dropout(x)
 
 
