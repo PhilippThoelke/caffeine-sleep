@@ -8,7 +8,7 @@ from mne.datasets import eegbci
 
 result_dir = "transformer/data/"
 # baseline-eyes, fist-motion, fist-imagination, fist_feet-motion, fist_feet-imagination
-target_type = "baseline-eyes"
+target_type = "fist-motion"
 normalize_epochs = True
 epoch_duration = 1.5
 
@@ -60,12 +60,21 @@ def extract_task(subjects, runs, epoch_duration, label_names):
         if curr_epochs.get_data().shape[-1] != (epoch_duration * 160 + 1):
             # skip runs which don't have a sampling frequency of 160
             continue
-        # left fist
-        epochs.extend(list(curr_epochs["T1"].get_data()))
+
+        def process(xs, normalize=False):
+            if not normalize:
+                return list(xs)
+            return [
+                (x - x.mean(axis=1, keepdims=True)) / x.std(axis=1, keepdims=True)
+                for x in xs
+            ]
+
+        # condition 1
+        epochs.extend(process(curr_epochs["T1"].get_data(), normalize=normalize_epochs))
         subject_labels.extend([subject] * len(curr_epochs["T1"]))
         labels.extend([label_names[0]] * len(curr_epochs["T1"]))
-        # right fist
-        epochs.extend(list(curr_epochs["T2"].get_data()))
+        # condition 2
+        epochs.extend(process(curr_epochs["T2"].get_data(), normalize=normalize_epochs))
         subject_labels.extend([subject] * len(curr_epochs["T2"]))
         labels.extend([label_names[1]] * len(curr_epochs["T2"]))
     return epochs, subject_labels, labels
