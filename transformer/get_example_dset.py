@@ -9,7 +9,8 @@ from mne.datasets import eegbci
 result_dir = "transformer/data/"
 # baseline-eyes, fist-motion, fist-imagination, fist_feet-motion, fist_feet-imagination
 target_type = "baseline-eyes"
-normalize_epochs = False
+normalize_epochs = True
+epoch_duration = 1.5
 
 
 def extract_baseline_eyes(subjects, runs, epoch_duration):
@@ -51,8 +52,9 @@ def extract_task(subjects, runs, epoch_duration, label_names):
         curr_epochs = mne.Epochs(
             raw,
             *mne.events_from_annotations(raw),
-            tmin=-1,
-            tmax=epoch_duration - 1,
+            tmin=0,
+            tmax=epoch_duration,
+            baseline=None,
             preload=True,
         )
         if curr_epochs.get_data().shape[-1] != (epoch_duration * 160 + 1):
@@ -69,41 +71,45 @@ def extract_task(subjects, runs, epoch_duration, label_names):
     return epochs, subject_labels, labels
 
 
-def extract_epochs(target, subjects=range(1, 110)):
+def extract_epochs(target, subjects=range(1, 110), epoch_duration=5):
     if target == "baseline-eyes":
-        return extract_baseline_eyes(subjects=subjects, runs=[1, 2], epoch_duration=5)
+        return extract_baseline_eyes(
+            subjects=subjects, runs=[1, 2], epoch_duration=epoch_duration
+        )
     elif target == "fist-motion":
         return extract_task(
             subjects=subjects,
             runs=[3, 7, 11],
-            epoch_duration=5,
+            epoch_duration=epoch_duration,
             label_names=["left fist", "right fist"],
         )
     elif target == "fist-imagination":
         return extract_task(
             subjects=subjects,
             runs=[4, 8, 12],
-            epoch_duration=5,
+            epoch_duration=epoch_duration,
             label_names=["left fist", "right fist"],
         )
     elif target == "fist_feet-motion":
         return extract_task(
             subjects=subjects,
             runs=[5, 9, 13],
-            epoch_duration=5,
+            epoch_duration=epoch_duration,
             label_names=["fists", "feet"],
         )
     elif target == "fist_feet-imagination":
         return extract_task(
             subjects=subjects,
             runs=[6, 10, 14],
-            epoch_duration=5,
+            epoch_duration=epoch_duration,
             label_names=["fists", "feet"],
         )
     raise ValueError(f"Unrecognized target {targer}")
 
 
-epochs, subject_labels, labels = extract_epochs(target_type)
+epochs, subject_labels, labels = extract_epochs(
+    target_type, epoch_duration=epoch_duration
+)
 
 shape = len(epochs), epochs[0].shape[1], epochs[0].shape[0]
 fname = f"nsamp_{shape[0]}-eplen_{shape[1]}-example_{target_type}"
