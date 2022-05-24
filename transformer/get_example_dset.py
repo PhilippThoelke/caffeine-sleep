@@ -8,7 +8,8 @@ from mne.datasets import eegbci
 
 result_dir = "transformer/data/"
 # baseline-eyes, fist-motion, fist-imagination, fist_feet-motion, fist_feet-imagination
-target_type = "fist-imagination"
+target_type = "baseline-eyes"
+normalize_epochs = False
 
 
 def extract_baseline_eyes(subjects, runs, epoch_duration):
@@ -26,7 +27,12 @@ def extract_baseline_eyes(subjects, runs, epoch_duration):
 
             offset = 0
             for _ in range(data.shape[1] // epoch_steps):
-                epochs.append(data[:, offset : offset + epoch_steps].astype(np.float32))
+                epoch = data[:, offset : offset + epoch_steps].astype(np.float32)
+                if normalize_epochs:
+                    mean = epoch.mean(axis=1, keepdims=True)
+                    std = epoch.std(axis=1, keepdims=True)
+                    epoch = (epoch - mean) / std
+                epochs.append(epoch)
                 subject_labels.append(subject)
                 labels.append(run2label[run])
                 offset += epoch_steps
