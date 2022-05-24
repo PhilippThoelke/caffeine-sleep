@@ -112,7 +112,7 @@ epochs, subject_labels, labels = extract_epochs(
 )
 
 shape = len(epochs), epochs[0].shape[1], epochs[0].shape[0]
-fname = f"nsamp_{shape[0]}-eplen_{shape[1]}-example_{target_type}"
+fname = f"nsamp_{shape[0]}-eplen_{shape[1]}{'-norm' if normalize_epochs else ''}-example_{target_type}"
 print("\nSaving raw data...", end="")
 file = np.memmap(
     join(result_dir, "raw-" + fname + ".dat"), mode="w+", dtype=np.float32, shape=shape
