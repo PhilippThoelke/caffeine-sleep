@@ -10,7 +10,7 @@ result_dir = "transformer/data/"
 # baseline-eyes, fist-motion, fist-imagination, fist_feet-motion, fist_feet-imagination
 target_type = "fist-motion"
 normalize_epochs = True
-epoch_duration = 1.5
+epoch_duration = 2
 
 
 def extract_baseline_eyes(subjects, runs, epoch_duration):
