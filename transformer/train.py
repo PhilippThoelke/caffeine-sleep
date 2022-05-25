@@ -188,6 +188,12 @@ if __name__ == "__main__":
         help="dropout ratio",
     )
     parser.add_argument(
+        "--token-dropout",
+        default=0,
+        type=float,
+        help="dropout ratio for entire tokens",
+    )
+    parser.add_argument(
         "--weight-decay",
         default=0.01,
         type=float,

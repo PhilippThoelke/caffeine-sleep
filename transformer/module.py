@@ -76,6 +76,11 @@ class TransformerModule(pl.LightningModule):
         x = x.permute(1, 0, 2)
         # standardize data
         x = (x - self.mean) / self.std
+        # dropout of entire tokens
+        if self.training and self.hparams.token_dropout > 0:
+            mask = torch.rand(x.shape[:2], device=x.device) < self.hparams.token_dropout
+            x[mask] = 0
+            x = x * (1 / (1 - self.hparams.token_dropout))
         # apply encoder model
         x = self.encoder(x)
         # apply output model
