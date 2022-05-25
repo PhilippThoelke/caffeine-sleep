@@ -21,10 +21,7 @@ class TransformerModule(pl.LightningModule):
                 self.hparams.used_data_length // self.hparams.num_tokens
             )
 
-        num_tokens = self.hparams.num_tokens * (
-            self.hparams.num_channels - len(self.hparams.ignore_channels)
-        )
-        self.norm = nn.BatchNorm1d(num_tokens)
+        self.norm = nn.BatchNorm1d(self.hparams.num_channels - len(self.hparams.ignore_channels))
 
         # transformer encoder
         self.encoder = EEGEncoder(
@@ -68,6 +65,10 @@ class TransformerModule(pl.LightningModule):
             ch_mask = torch.ones(x.size(2), dtype=torch.bool)
             ch_mask.scatter_(0, torch.tensor(self.hparams.ignore_channels), False)
             x = x[..., ch_mask]
+        # standardize data
+        x = (x - self.mean) / self.std
+        # apply layer norm across tokens
+        x = self.norm(x.permute(0, 2, 1)).permute(0, 2, 1)
         # reshape x from (B x time x elec) to (B x token x signal x channel)
         x = x.view(x.size(0), self.hparams.num_tokens, self.sample_length, x.size(2))
         # randomly reorder tokens
@@ -80,10 +81,6 @@ class TransformerModule(pl.LightningModule):
         # reshape x from (B x token x signal x channel) to (token x B x window_length)
         x = x.permute(0, 3, 1, 2).reshape(x.size(0), -1, self.sample_length)
         x = x.permute(1, 0, 2)
-        # standardize data
-        x = (x - self.mean) / self.std
-        # apply layer norm across tokens
-        x = self.norm(x.permute(1, 0, 2)).permute(1, 0, 2)
         # dropout of entire tokens
         if self.training and self.hparams.token_dropout > 0:
             mask = torch.rand(x.shape[:2], device=x.device) < self.hparams.token_dropout
