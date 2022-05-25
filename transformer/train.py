@@ -74,9 +74,9 @@ def main(args):
         max_epochs=args.max_epochs,
         callbacks=[
             pl.callbacks.EarlyStopping(
-                "val_acc", patience=args.early_stopping_patience, mode="max"
+                "val_loss", patience=args.early_stopping_patience, mode="min"
             ),
-            pl.callbacks.ModelCheckpoint(monitor="val_acc", mode="max"),
+            pl.callbacks.ModelCheckpoint(monitor="val_loss", mode="min"),
         ],
     )
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--early-stopping-patience",
-        default=10,
+        default=50,
         type=int,
         help="number of epochs to continue training if val loss doesn't improve anymore",
     )
