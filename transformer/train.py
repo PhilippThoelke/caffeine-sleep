@@ -182,6 +182,12 @@ if __name__ == "__main__":
         help="number of encoder layers in the transformer",
     )
     parser.add_argument(
+        "--num-heads",
+        default=8,
+        type=int,
+        help="number of attention heads",
+    )
+    parser.add_argument(
         "--dropout",
         default=0.1,
         type=float,

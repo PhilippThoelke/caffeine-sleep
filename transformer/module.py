@@ -26,6 +26,7 @@ class TransformerModule(pl.LightningModule):
             self.hparams.embedding_dim,
             self.hparams.num_layers,
             self.sample_length,
+            nheads=self.hparams.num_heads,
             dropout=self.hparams.dropout,
         )
 
@@ -190,34 +191,34 @@ class TransformerModule(pl.LightningModule):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, embedding_dim, nhead, dropout=0.1):
+    def __init__(self, embedding_dim, nheads, dropout=0.1):
         super().__init__()
         self.embedding_dim = embedding_dim
-        self.nhead = nhead
+        self.nheads = nheads
         self.qkv = nn.Linear(embedding_dim, embedding_dim * 3)
         self.out = nn.Linear(embedding_dim, embedding_dim)
         self.dropout = nn.Dropout(dropout)
-        self.scale_factor = math.sqrt(embedding_dim / nhead)
+        self.scale_factor = math.sqrt(embedding_dim / nheads)
 
     def forward(self, x):
         q, k, v = self.qkv(x).split(self.embedding_dim, dim=-1)
-        q = q.reshape(q.size(0), q.size(1) * self.nhead, -1).permute(1, 0, 2)
-        k = k.reshape(k.size(0), k.size(1) * self.nhead, -1).permute(1, 2, 0)
+        q = q.reshape(q.size(0), q.size(1) * self.nheads, -1).permute(1, 0, 2)
+        k = k.reshape(k.size(0), k.size(1) * self.nheads, -1).permute(1, 2, 0)
         attn = torch.softmax((q @ k) / self.scale_factor, dim=-1)
-        v = v.reshape(v.size(0), v.size(1) * self.nhead, -1).permute(1, 0, 2)
+        v = v.reshape(v.size(0), v.size(1) * self.nheads, -1).permute(1, 0, 2)
         o = attn @ v
         o = o.permute(1, 0, 2).reshape(x.shape)
         o = self.out(o)
         o = self.dropout(o)
-        return o, attn.reshape(x.size(1), self.nhead, x.size(0), x.size(0))
+        return o, attn.reshape(x.size(1), self.nheads, x.size(0), x.size(0))
 
 
 class TransformerEncoderLayer(nn.Module):
-    def __init__(self, embedding_dim, nhead=8, dim_feedforward=2048, dropout=0.1):
+    def __init__(self, embedding_dim, nheads=8, dim_feedforward=2048, dropout=0.1):
         super().__init__()
         self.norm1 = nn.LayerNorm(embedding_dim)
         self.norm2 = nn.LayerNorm(embedding_dim)
-        self.mha = MultiHeadAttention(embedding_dim, nhead, dropout=dropout)
+        self.mha = MultiHeadAttention(embedding_dim, nheads, dropout=dropout)
         self.ff = nn.Sequential(
             nn.Linear(embedding_dim, dim_feedforward),
             nn.ReLU(),
@@ -233,7 +234,7 @@ class TransformerEncoderLayer(nn.Module):
 
 
 class EEGEncoder(nn.Module):
-    def __init__(self, embedding_dim, num_layers, sample_length, dropout=0.1):
+    def __init__(self, embedding_dim, num_layers, sample_length, nheads=8, dropout=0.1):
         super().__init__()
         # input projection layer
         self.proj = nn.Linear(sample_length, embedding_dim)
@@ -246,7 +247,7 @@ class EEGEncoder(nn.Module):
             *[
                 TransformerEncoderLayer(
                     embedding_dim,
-                    nhead=8,
+                    nheads=nheads,
                     dim_feedforward=embedding_dim * 2,
                     dropout=dropout,
                 )
