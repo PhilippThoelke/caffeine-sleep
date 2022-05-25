@@ -21,6 +21,11 @@ class TransformerModule(pl.LightningModule):
                 self.hparams.used_data_length // self.hparams.num_tokens
             )
 
+        num_tokens = self.hparams.num_tokens * (
+            self.hparams.num_channels - len(self.hparams.ignore_channels)
+        )
+        self.norm = nn.LayerNorm(num_tokens)
+
         # transformer encoder
         self.encoder = EEGEncoder(
             self.hparams.embedding_dim,
@@ -77,6 +82,8 @@ class TransformerModule(pl.LightningModule):
         x = x.permute(1, 0, 2)
         # standardize data
         x = (x - self.mean) / self.std
+        # apply layer norm across tokens
+        x = self.norm(x.permute(1, 2, 0)).permute(2, 0, 1)
         # dropout of entire tokens
         if self.training and self.hparams.token_dropout > 0:
             mask = torch.rand(x.shape[:2], device=x.device) < self.hparams.token_dropout
