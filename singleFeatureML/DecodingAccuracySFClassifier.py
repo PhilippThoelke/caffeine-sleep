@@ -2,9 +2,6 @@ import os
 import sys
 import pickle
 import numpy as np
-from mne import viz
-from scipy import io
-from matplotlib import colors, pyplot as plt
 from sklearn import (
     model_selection,
     ensemble,
