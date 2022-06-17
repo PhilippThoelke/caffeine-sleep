@@ -35,21 +35,27 @@ def extract_sleep_stages(data, hypnogram):
     """
     if data.shape[2] != hypnogram.shape[0]:
         # the epoch count does not match the hypnogram length, adjusting EEG data shape
-        data = data[:,:,:hypnogram.shape[0]]
+        data = data[:, :, : hypnogram.shape[0]]
 
     # set hypnogram values of AWA stage after the first sleep to 6
     mask = np.ones(hypnogram.shape)
-    mask[:np.where(hypnogram != 0)[0][0]] = 0
-    hypnogram[(hypnogram==0)&(mask==1)] = 6
+    mask[: np.where(hypnogram != 0)[0][0]] = 0
+    hypnogram[(hypnogram == 0) & (mask == 1)] = 6
 
     # create a dictionary with entries for each sleep stage
-    return {'AWA': data[:,:,(hypnogram == 0) | (hypnogram == 6)],
-            'AWSL': data[:,:,hypnogram == 6],
-            'N1': data[:,:,hypnogram == 1],
-            'N2': data[:,:,hypnogram == 2],
-            'N3': data[:,:,(hypnogram == 3) | (hypnogram == 4)],
-            'NREM': data[:,:,(hypnogram == 1) | (hypnogram == 2) | (hypnogram == 3) | (hypnogram == 4)],
-            'REM': data[:,:,hypnogram == 5]}
+    return {
+        "AWA": data[:, :, (hypnogram == 0) | (hypnogram == 6)],
+        "AWSL": data[:, :, hypnogram == 6],
+        "N1": data[:, :, hypnogram == 1],
+        "N2": data[:, :, hypnogram == 2],
+        "N3": data[:, :, (hypnogram == 3) | (hypnogram == 4)],
+        "NREM": data[
+            :,
+            :,
+            (hypnogram == 1) | (hypnogram == 2) | (hypnogram == 3) | (hypnogram == 4),
+        ],
+        "REM": data[:, :, hypnogram == 5],
+    }
 
 
 def _extract_frequency_power_bands(freqs, values, relative=False):
@@ -69,12 +75,14 @@ def _extract_frequency_power_bands(freqs, values, relative=False):
     else:
         total = 1
 
-    return [np.sum(values[(freqs >= 0.3) & (freqs < 4)]) / total,
-            np.sum(values[(freqs >= 4) & (freqs < 8)]) / total,
-            np.sum(values[(freqs >= 8) & (freqs < 12)]) / total,
-            np.sum(values[(freqs >= 12) & (freqs < 16)]) / total,
-            np.sum(values[(freqs >= 16) & (freqs < 32)]) / total,
-            np.sum(values[(freqs >= 32) & (freqs <= 50)]) / total]
+    return [
+        np.sum(values[(freqs >= 0.3) & (freqs < 4)]) / total,
+        np.sum(values[(freqs >= 4) & (freqs < 8)]) / total,
+        np.sum(values[(freqs >= 8) & (freqs < 12)]) / total,
+        np.sum(values[(freqs >= 12) & (freqs < 16)]) / total,
+        np.sum(values[(freqs >= 16) & (freqs < 32)]) / total,
+        np.sum(values[(freqs >= 32) & (freqs <= 50)]) / total,
+    ]
 
 
 def _power_spectral_density_single_epoch(epoch, num_segments=6, frequency=256):
@@ -90,7 +98,13 @@ def _power_spectral_density_single_epoch(epoch, num_segments=6, frequency=256):
         frequency distribution
         power spectral density
     """
-    return signal.welch(epoch, fs=frequency, nperseg=len(epoch) // num_segments, noverlap=0, window='hamming')
+    return signal.welch(
+        epoch,
+        fs=frequency,
+        nperseg=len(epoch) // num_segments,
+        noverlap=0,
+        window="hamming",
+    )
 
 
 def power_spectral_density(stage, bands=True, relative=False):
@@ -123,7 +137,9 @@ def power_spectral_density(stage, bands=True, relative=False):
 
             if bands:
                 # add list with the power band values as the third dimension
-                power_bands = _extract_frequency_power_bands(freq, amp, relative=relative)
+                power_bands = _extract_frequency_power_bands(
+                    freq, amp, relative=relative
+                )
                 psd[-1][-1] = power_bands
             else:
                 # add amplitude array as the third dimension
@@ -169,14 +185,20 @@ def permutation_entropy(signal, order=3, delay=1, normalize=True):
     """
     window_count = len(signal) - (order - 1) * delay
     # partition the signal into windows of length order with step size delay
-    windows = np.array([signal[i * delay:i * delay + window_count] for i in range(order)]).T
+    windows = np.array(
+        [signal[i * delay : i * delay + window_count] for i in range(order)]
+    ).T
 
     # calculate element ranks for each window in ascending order
     # same values become distinct ranks corresponding to the order of appearance
     # e.g. window [4, 6, 1] becomes [1, 2, 0]
-    ranks = np.array([stats.rankdata(window, method='ordinal') - 1 for window in windows])
+    ranks = np.array(
+        [stats.rankdata(window, method="ordinal") - 1 for window in windows]
+    )
     # get relative frequency of each unique rank in the data
-    rel_permutation_counts = np.unique(ranks, axis=0, return_counts=True)[1] / ranks.shape[0]
+    rel_permutation_counts = (
+        np.unique(ranks, axis=0, return_counts=True)[1] / ranks.shape[0]
+    )
 
     # calculate permutation entropy
     entropy = -np.sum([perm * np.log2(perm) for perm in rel_permutation_counts])
@@ -226,8 +248,8 @@ def sample_entropy(signal, dimension=2, tolerance=0.2, only_last=True):
     Ntemp[0] = n * (n - 1) / 2
 
     for i in range(n - M - 1):
-        template = signal[i:(i + M + 1)]  # We have 'M+1' elements in the template
-        rem_signal = signal[i + 1:]
+        template = signal[i : (i + M + 1)]  # We have 'M+1' elements in the template
+        rem_signal = signal[i + 1 :]
 
         searchlist = np.nonzero(np.abs(rem_signal - template[0]) < tolerance)[0]
 
@@ -276,16 +298,33 @@ def sample_entropy_slow(signal, dimension=2, tolerance=0.2):
     tolerance = tolerance * np.std(signal)
 
     # generate windows with length dimension + 1 over the signal
-    embeddings = np.array([signal[i:i + dimension + 1] for i in range(len(signal) - dimension)])
+    embeddings = np.array(
+        [signal[i : i + dimension + 1] for i in range(len(signal) - dimension)]
+    )
     # compute number of matches for windows with size dimension and size dimension + 1
-    matches = np.sum([np.sum([[_distance(template[:-1], embedding[:-1]) <= tolerance, _distance(template, embedding) <= tolerance]
-                              for j, embedding in enumerate(embeddings) if i != j], axis=0) for i, template in enumerate(embeddings)], axis=0)
+    matches = np.sum(
+        [
+            np.sum(
+                [
+                    [
+                        _distance(template[:-1], embedding[:-1]) <= tolerance,
+                        _distance(template, embedding) <= tolerance,
+                    ]
+                    for j, embedding in enumerate(embeddings)
+                    if i != j
+                ],
+                axis=0,
+            )
+            for i, template in enumerate(embeddings)
+        ],
+        axis=0,
+    )
 
     # return negative ln of # matches for size dimension + 1 divided by # matches for size dimension
     return -np.log(matches[1] / matches[0])
 
 
-def spectral_entropy(stage, method='shannon'):
+def spectral_entropy(stage, method="shannon"):
     """
     Computes the spectral entropy for one sleep stage using the specified entropy method (permutation or shannon).
 
@@ -305,15 +344,17 @@ def spectral_entropy(stage, method='shannon'):
     spec_entropy = np.empty((electrode_count, epoch_count))
     for electrode in range(electrode_count):
         for epoch in range(epoch_count):
-            if method.lower() == 'shannon':
+            if method.lower() == "shannon":
                 # get PSD shannon entropy for the current electrode and epoch
                 spec_entropy[electrode, epoch] = shannon_entropy(
-                    psd[electrode, epoch], normalize=True)
-            elif method.lower() == 'permutation':
+                    psd[electrode, epoch], normalize=True
+                )
+            elif method.lower() == "permutation":
                 # get PSD permutation entropy for the current electrode and epoch
                 spec_entropy[electrode, epoch] = permutation_entropy(
-                    psd[electrode, epoch], normalize=True)
-            elif method.lower() == 'sample':
+                    psd[electrode, epoch], normalize=True
+                )
+            elif method.lower() == "sample":
                 # get PSD sample entropy for the current electrode and epoch
                 spec_entropy[electrode, epoch] = sample_entropy(psd[electrode, epoch])
             else:
