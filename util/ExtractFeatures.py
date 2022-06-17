@@ -6,9 +6,10 @@ import os
 import glob
 import numpy as np
 import pandas as pd
-from caffeine.EEGProcessing import (
+from EEGProcessing import (
     load_data,
     extract_sleep_stages,
+    load_pre_split_data,
     power_spectral_density,
     shannon_entropy,
     permutation_entropy,
@@ -19,20 +20,23 @@ from caffeine.EEGProcessing import (
 # caffeine dose: 200 or 400
 CAF_DOSE = 200
 # path to the subject information CSV file
-SUBJECTS_PATH = f"E:\\Cafeine_data\\CAF_{CAF_DOSE}_Inventaire.csv"
+SUBJECTS_PATH = f"data/CAF_{CAF_DOSE}_Inventaire.csv"
 # directory with the raw EEG data
-DATA_PATH = f"E:\\Cafeine_data\\CAF_{CAF_DOSE}\\EEG_data\\"
+DATA_PATH = f"data/raw_eeg{CAF_DOSE}"
 # directory where features will be stored
-FEATURES_PATH = f"C:\\Users\\Philipp\\Documents\\Caffeine\\Features{CAF_DOSE}"
+FEATURES_PATH = f"data/Features{CAF_DOSE}_redo"
+# if True, use a hypnogram to split the raw EEG data into sleep stages
+# if False, load data that is already split into sleep stages
+SPLIT_STAGES = False
 
 # which features to compute
 psd = True
 shanEn = False
-permEn = False
-sampEn = False
-specShanEn = False
-specPermEn = False
-specSampEn = False
+permEn = True
+sampEn = True
+specShanEn = True
+specPermEn = True
+specSampEn = True
 
 
 def save_feature_dict(name, folder_path, feature_dict):
@@ -143,16 +147,33 @@ while len(subject_ids) > len(done_subjects):
             print("Features already computed, moving on.")
             continue
 
-    eeg_path = os.path.join(DATA_PATH, subject_id, "EEG_data_clean.npy")
-    hyp_path = os.path.join(DATA_PATH, subject_id, "hyp_clean.npy")
-    print("Loading EEG and sleep hypnogram data...", end="", flush=True)
-    eeg_data, hyp_data = load_data(eeg_path, hyp_path)
-    print("done")
+    if SPLIT_STAGES:
+        eeg_path = os.path.join(DATA_PATH, subject_id, "EEG_data_clean.npy")
+        assert os.path.exists(eeg_path), (
+            f"Raw EEG data was not found at {eeg_path}. "
+            "Make sure it exists or switch SPLIT_STAGES to False."
+        )
+        hyp_path = os.path.join(DATA_PATH, subject_id, "hyp_clean.npy")
+        assert os.path.exists(hyp_path), (
+            f"Hypnogram data was not found at {hyp_path}. "
+            "Make sure it exists or switch SPLIT_STAGES to False."
+        )
+        print("Loading EEG and sleep hypnogram data...", end="", flush=True)
+        eeg_data, hyp_data = load_data(eeg_path, hyp_path)
+        print("done")
 
-    print("Extracting sleep stages...", end="", flush=True)
-    stages = extract_sleep_stages(eeg_data, hyp_data)
-    del eeg_data, hyp_data
-    print("done")
+        print("Extracting sleep stages...", end="", flush=True)
+        stages = extract_sleep_stages(eeg_data, hyp_data)
+        del eeg_data, hyp_data
+        print("done")
+    else:
+        print(
+            "SPLIT_STAGES is set to False. Loading data that is already split into sleep stages...",
+            end="",
+            flush=True,
+        )
+        stages = load_pre_split_data(DATA_PATH, subject_id)
+        print("done")
 
     if psd and not psd_done:
         feature = {}

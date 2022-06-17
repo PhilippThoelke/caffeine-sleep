@@ -1,3 +1,5 @@
+import os
+import glob
 import numpy as np
 from scipy import signal, stats
 
@@ -52,6 +54,31 @@ def extract_sleep_stages(data, hyp):
         "NREM": data[:, :, (hyp == 1) | (hyp == 2) | (hyp == 3) | (hyp == 4),],
         "REM": data[:, :, hyp == 5],
     }
+
+
+def load_pre_split_data(path, subject_id):
+    """
+    Loads data that was previously split into sleep stages.
+
+    Args:
+        path: path to the directory where data is stored
+        subject_id: identifier of the subject for which data should be loaded
+
+    Returns:
+        dictionary with sleep stage names as keys and EEG epochs as values with shape (electrodes x epoch steps x epochs)
+    """
+    paths = glob.glob(os.path.join(path, f"{subject_id}_*.npy"))
+    data = dict()
+    for p in paths:
+        stage = p.split(os.sep)[-1].split("_")[1]
+        current = np.load(p)
+        if stage in data:
+            data[stage].append(current)
+        else:
+            data[stage] = [current]
+    for stage in data.keys():
+        data[stage] = np.concatenate(data[stage], axis=0).T
+    return data
 
 
 def _extract_frequency_power_bands(freqs, values, relative=False):
