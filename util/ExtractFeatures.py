@@ -1,7 +1,3 @@
-import sys
-
-sys.path.append("..")
-
 import os
 import glob
 import numpy as np
