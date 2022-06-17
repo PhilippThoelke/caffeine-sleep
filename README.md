@@ -1,10 +1,14 @@
-# Caffeine-Sleep
+# Data-mining sleep brain signals using machine-learning: Exploring the effect of caffeine on EEG network dynamics
 Analysis of the effect of caffeine on quantitative sleep EEG utilizing statistics and machine learning in a data-driven manner.
 
-## Library specificities
-A modified version of the library MNE, used for analyzing and visualizing neurophysiological data, was used.
-- Official version: https://github.com/mne-tools/mne-python.git
-- Modified version: https://github.com/PhilippThoelke/mne-python.git
+## Installation
+Clone this repository and install the dependencies from `requirements.txt`:
+```bash
+git clone git@github.com:PhilippThoelke/caffeine-sleep.git
+cd caffeine-sleep
+pip install -r requirements.txt
+```
+We used a modified version of MNE-Python (0.19) for some of the visualizations, which is automatically installed when using our `requirements.txt` file. The modifications made to the original code are available [here](https://github.com/PhilippThoelke/mne-python.git).
 
 ## Related work
 - [Caffeine Caused a Widespread Increase of Resting Brain Entropy](https://www.nature.com/articles/s41598-018-21008-6)
