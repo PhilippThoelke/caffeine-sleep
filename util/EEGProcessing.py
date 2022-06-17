@@ -67,15 +67,20 @@ def load_pre_split_data(path, subject_id):
     Returns:
         dictionary with sleep stage names as keys and EEG epochs as values with shape (electrodes x epoch steps x epochs)
     """
-    paths = glob.glob(os.path.join(path, f"{subject_id}_*.npy"))
     data = dict()
+    # find paths to all files for the specific subject
+    paths = glob.glob(os.path.join(path, f"{subject_id}_*.npy"))
     for p in paths:
+        # extract the sleep stage from the file name
         stage = p.split(os.sep)[-1].split("_")[1]
+        # load the data
         current = np.load(p)
+
         if stage in data:
             data[stage].append(current)
         else:
             data[stage] = [current]
+    # concatenate individual files along the epoch dimension
     for stage in data.keys():
         data[stage] = np.concatenate(data[stage], axis=0).T
     return data
