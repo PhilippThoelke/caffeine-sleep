@@ -18,7 +18,14 @@ Scripts for running the preprocessing pipeline are located in the `preprocessing
 3. Run `CombineFeatures.py` to group the extracted features from all subjects into a single file and perform normalization, as well as average across subjects. The resulting files containing averaged features, condition labels and subject labels are called `data_avg.pickle`, `labels_avg.pickle` and `groups_avg.pickle` respectively. These files will be used for analysis.
 
 ### Analysis
-The analysis is split up into three parts: statistics, single feature machine learning and multi feature machine learning. The corresponding files can be found in the `statistics`, `singleFeatureML` and `multiFeatureML` directories.
+The analysis is split up into three parts: statistics, single-feature machine learning and multi-feature machine learning. The corresponding files can be found in the `statistics`, `singleFeatureML` and `multiFeatureML` directories.
+1. Statistics:\
+The `Statistics.ipynb` notebook contains the code used for the statistical analysis of the caffeine vs. placebo condition for all features. It runs permutation t-tests and subsequently generates a figure, showing the statistical results visually.
+
+2. single-feature ML:
+#### TODO
+
+3. multi-feature ML:
 #### TODO
 
 ## Related work
