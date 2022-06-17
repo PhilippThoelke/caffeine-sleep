@@ -17,6 +17,10 @@ Scripts for running the preprocessing pipeline are located in the `preprocessing
 2. Compute differences in sample count between the awake (AWA) and wake after sleep onset (WASO/AWSL) using `ComputeSampleDifferences.py`. The script will save a file called `sample_difference<caffeine-dose>.pickle`, which is required for the next step.
 3. Run `CombineFeatures.py` to group the extracted features from all subjects into a single file and perform normalization, as well as average across subjects. The resulting files containing averaged features, condition labels and subject labels are called `data_avg.pickle`, `labels_avg.pickle` and `groups_avg.pickle` respectively. These files will be used for analysis.
 
+### Analysis
+The analysis is split up into three parts: statistics, single feature machine learning and multi feature machine learning. The corresponding files can be found in the `statistics`, `singleFeatureML` and `multiFeatureML` directories.
+#### TODO
+
 ## Related work
 - [Caffeine Caused a Widespread Increase of Resting Brain Entropy](https://www.nature.com/articles/s41598-018-21008-6)
 
