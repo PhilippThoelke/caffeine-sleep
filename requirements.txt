@@ -3,7 +3,6 @@ h5py==2.10.0
 joblib==1.1.0
 jupyter==1.0.0
 matplotlib==3.1.3
-mne==0.19.dev0
 neurokit2==0.1.7
 nibabel==3.2.2
 nitime==0.9
@@ -13,3 +12,5 @@ pandas==1.4.2
 scikit-learn==1.0.2
 scipy==1.7.3
 tqdm==4.64.0
+# modified version of mne
+git+https://github.com/PhilippThoelke/mne-python.git
