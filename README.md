@@ -22,7 +22,7 @@ Scripts for running the preprocessing pipeline are located in the `preprocessing
 
 - [Caffeine-induced global reductions in resting-state BOLD connectivity reflect widespread decreases in MEG connectivity](https://www.frontiersin.org/articles/10.3389/fnhum.2013.00063/full)
 
-- [Challenging sleep in aging: the effects of 200 mg of caffeine during the evening in young and middle‐aged moderate caffeine consumers](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2869.2006.00518.x)
+- [Challenging sleep in aging: the effects of 200mg of caffeine during the evening in young and middle‐aged moderate caffeine consumers](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2869.2006.00518.x)
 
 - [Effects of amphetamine, diazepam and caffeine on polysomnography (EEG, EMG, EOG)-derived variables measured using telemetry in Cynomolgus monkeys](https://reader.elsevier.com/reader/sd/pii/S1056871914002159?token=84C565DED7C251D79BAC82A61144C97174EA8B815C963E8E71A6BA54FC9A05544384B0932C822E41EDC09FF44C0A7419)
 
