@@ -10,6 +10,10 @@ pip install -r requirements.txt
 ```
 We used a modified version of MNE-Python (0.19) for some of the visualizations, which is automatically installed when using our `requirements.txt` file. The modifications made to the original code are available [here](https://github.com/PhilippThoelke/mne-python.git).
 
+## Usage
+### Feature extraction
+Run`ExtractFeatures.py` to extract features from the raw EEG. Before running, adjust the global variables at the top of the script accordingly. The script is able to load the data in two different formats, based on the `SPLIT_STAGES` variable: when set to true, the script expects raw EEG and corresponding hypnograms as `.npy` files. If set to false, data that was previously split into sleep stages will be loaded. The data is also expected to be in `.npy` format with the following naming scheme: `<subject-id>_<sleep-stage>_*.npy`.
+
 ## Related work
 - [Caffeine Caused a Widespread Increase of Resting Brain Entropy](https://www.nature.com/articles/s41598-018-21008-6)
 
