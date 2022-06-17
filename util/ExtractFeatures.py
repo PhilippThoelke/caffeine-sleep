@@ -1,20 +1,34 @@
 import sys
-sys.path.append('..')
+
+sys.path.append("..")
 
 import os
 import glob
 import numpy as np
 import pandas as pd
-from caffeine.EEGProcessing import load_data, extract_sleep_stages, power_spectral_density, shannon_entropy, permutation_entropy, sample_entropy, spectral_entropy
+from caffeine.EEGProcessing import (
+    load_data,
+    extract_sleep_stages,
+    power_spectral_density,
+    shannon_entropy,
+    permutation_entropy,
+    sample_entropy,
+    spectral_entropy,
+)
 
+# caffeine dose: 200 or 400
 CAF_DOSE = 200
-SUBJECTS_PATH = 'E:\\Cafeine_data\\CAF_{dose}_Inventaire.csv'.format(dose=CAF_DOSE)
-DATA_PATH = 'E:\\Cafeine_data\\CAF_{dose}\\EEG_data\\'.format(dose=CAF_DOSE)
-FEATURES_PATH = 'C:\\Users\\Philipp\\Documents\\Caffeine\\Features{dose}'.format(dose=CAF_DOSE)
+# path to the subject information CSV file
+SUBJECTS_PATH = f"E:\\Cafeine_data\\CAF_{CAF_DOSE}_Inventaire.csv"
+# directory with the raw EEG data
+DATA_PATH = f"E:\\Cafeine_data\\CAF_{CAF_DOSE}\\EEG_data\\"
+# directory where features will be stored
+FEATURES_PATH = f"C:\\Users\\Philipp\\Documents\\Caffeine\\Features{CAF_DOSE}"
 
-psd = False
+# which features to compute
+psd = True
 shanEn = False
-permEn = True
+permEn = False
 sampEn = False
 specShanEn = False
 specPermEn = False
@@ -27,7 +41,7 @@ def save_feature_dict(name, folder_path, feature_dict):
         os.mkdir(folder_path)
 
     for key, feature in feature_dict.items():
-        path = os.path.join(folder_path, f'{name}_{key}')
+        path = os.path.join(folder_path, f"{name}_{key}")
         np.save(path, feature)
 
 
@@ -37,7 +51,7 @@ def create_folder(name, folder_path):
         os.mkdir(folder_path)
 
 
-subject_ids = pd.read_csv(SUBJECTS_PATH, index_col=0)['Subject_id']
+subject_ids = pd.read_csv(SUBJECTS_PATH, index_col=0)["Subject_id"]
 
 done_subjects = []
 while len(subject_ids) > len(done_subjects):
@@ -54,148 +68,158 @@ while len(subject_ids) > len(done_subjects):
         i += 1
 
     subject_path = os.path.join(FEATURES_PATH, subject_id)
-    print(f'----------------------------- NEW SUBJECT: {subject_id} -----------------------------')
+    print(
+        f"----------------------------- NEW SUBJECT: {subject_id} -----------------------------"
+    )
     done_subjects.append(subject_id)
     if not os.path.exists(subject_path):
-        print(f'Creating feature folder for subject \'{subject_id}\'...', end='')
+        print(f"Creating feature folder for subject '{subject_id}'...", end="")
         os.mkdir(subject_path)
         if psd:
-            create_folder('PSD', subject_path)
+            create_folder("PSD", subject_path)
         if shanEn:
-            create_folder('ShanEn', subject_path)
+            create_folder("ShanEn", subject_path)
         if permEn:
-            create_folder('PermEn', subject_path)
+            create_folder("PermEn", subject_path)
         if sampEn:
-            create_folder('SampEn', subject_path)
+            create_folder("SampEn", subject_path)
         if specShanEn:
-            create_folder('SpecShanEn', subject_path)
+            create_folder("SpecShanEn", subject_path)
         if specPermEn:
-            create_folder('SpecPermEn', subject_path)
+            create_folder("SpecPermEn", subject_path)
         if specSampEn:
-            create_folder('SpecSampEn', subject_path)
-        print('done')
+            create_folder("SpecSampEn", subject_path)
+        print("done")
     else:
-        features = [file.split(os.sep)[-1] for file in glob.glob(os.path.join(subject_path, '*'))]
+        features = [
+            file.split(os.sep)[-1]
+            for file in glob.glob(os.path.join(subject_path, "*"))
+        ]
         finished = True
         if psd:
-            if 'PSD' in features:
+            if "PSD" in features:
                 psd_done = True
             else:
                 finished = False
-                create_folder('PSD', subject_path)
+                create_folder("PSD", subject_path)
         if shanEn:
-            if 'ShanEn' in features:
+            if "ShanEn" in features:
                 shanEn_done = True
             else:
                 finished = False
-                create_folder('ShanEn', subject_path)
+                create_folder("ShanEn", subject_path)
         if permEn:
-            if 'PermEn' in features:
+            if "PermEn" in features:
                 permEn_done = True
             else:
                 finished = False
-                create_folder('PermEn', subject_path)
+                create_folder("PermEn", subject_path)
         if sampEn:
-            if 'SampEn' in features:
+            if "SampEn" in features:
                 sampEn_done = True
             else:
                 finished = False
-                create_folder('SampEn', subject_path)
+                create_folder("SampEn", subject_path)
         if specShanEn:
-            if 'SpecShanEn' in features:
+            if "SpecShanEn" in features:
                 specShanEn_done = True
             else:
                 finished = False
-                create_folder('SpecShanEn', subject_path)
+                create_folder("SpecShanEn", subject_path)
         if specPermEn:
-            if 'SpecPermEn' in features:
+            if "SpecPermEn" in features:
                 specPermEn_done = True
             else:
                 finished = False
-                create_folder('SpecPermEn', subject_path)
+                create_folder("SpecPermEn", subject_path)
         if specSampEn:
-            if 'SpecSampEn' in features:
+            if "SpecSampEn" in features:
                 specSampEn_done = True
             else:
                 finished = False
-                create_folder('SpecSampEn', subject_path)
+                create_folder("SpecSampEn", subject_path)
 
         if finished:
-            print('Features already computed, moving on.')
+            print("Features already computed, moving on.")
             continue
 
-    eeg_path = os.path.join(DATA_PATH, subject_id, 'EEG_data_clean.npy')
-    hyp_path = os.path.join(DATA_PATH, subject_id, 'hyp_clean.npy')
-    print('Loading EEG and sleep hypnogram data...', end='', flush=True)
+    eeg_path = os.path.join(DATA_PATH, subject_id, "EEG_data_clean.npy")
+    hyp_path = os.path.join(DATA_PATH, subject_id, "hyp_clean.npy")
+    print("Loading EEG and sleep hypnogram data...", end="", flush=True)
     eeg_data, hyp_data = load_data(eeg_path, hyp_path)
-    print('done')
+    print("done")
 
-    print('Extracting sleep stages...', end='', flush=True)
+    print("Extracting sleep stages...", end="", flush=True)
     stages = extract_sleep_stages(eeg_data, hyp_data)
     del eeg_data, hyp_data
-    print('done')
+    print("done")
 
     if psd and not psd_done:
         feature = {}
-        print('Computing power spectral density...', end='', flush=True)
+        print("Computing power spectral density...", end="", flush=True)
         for key, stage in stages.items():
             feature[key] = power_spectral_density(stage)
-        save_feature_dict('PSD', subject_path, feature)
-        print('done')
+        save_feature_dict("PSD", subject_path, feature)
+        print("done")
 
     if shanEn and not shanEn_done:
         feature = {}
-        print('Computing absolute value shannon entropy...', end='', flush=True)
+        print("Computing absolute value shannon entropy...", end="", flush=True)
         for key, stage in stages.items():
             feature[key] = np.empty((stage.shape[0], stage.shape[2]))
             for elec in range(stage.shape[0]):
                 for epoch in range(stage.shape[2]):
-                    feature[key][elec, epoch] = shannon_entropy(np.abs(stage[elec, :, epoch]))
-        save_feature_dict('ShanEn', subject_path, feature)
-        print('done')
+                    feature[key][elec, epoch] = shannon_entropy(
+                        np.abs(stage[elec, :, epoch])
+                    )
+        save_feature_dict("ShanEn", subject_path, feature)
+        print("done")
 
     if permEn and not permEn_done:
         feature = {}
-        print('Computing permutation entropy...', end='', flush=True)
+        print("Computing permutation entropy...", end="", flush=True)
         for key, stage in stages.items():
             feature[key] = np.empty((stage.shape[0], stage.shape[2]))
             for elec in range(stage.shape[0]):
                 for epoch in range(stage.shape[2]):
-                    feature[key][elec, epoch] = permutation_entropy(stage[elec, :, epoch])
-        save_feature_dict('PermEn', subject_path, feature)
-        print('done')
+                    feature[key][elec, epoch] = permutation_entropy(
+                        stage[elec, :, epoch]
+                    )
+        save_feature_dict("PermEn", subject_path, feature)
+        print("done")
 
     if sampEn and not sampEn_done:
         feature = {}
-        print('Computing sample entropy...', end='', flush=True)
+        print("Computing sample entropy...", end="", flush=True)
         for key, stage in stages.items():
             feature[key] = np.empty((stage.shape[0], stage.shape[2]))
             for elec in range(stage.shape[0]):
                 for epoch in range(stage.shape[2]):
                     feature[key][elec, epoch] = sample_entropy(stage[elec, :, epoch])
-        save_feature_dict('SampEn', subject_path, feature)
-        print('done')
+        save_feature_dict("SampEn", subject_path, feature)
+        print("done")
 
     if specShanEn and not specShanEn_done:
         feature = {}
-        print('Computing spectral shannon entropy...', end='', flush=True)
+        print("Computing spectral shannon entropy...", end="", flush=True)
         for key, stage in stages.items():
-            feature[key] = spectral_entropy(stage, method='shannon')
-        save_feature_dict('SpecShanEn', subject_path, feature)
-        print('done')
+            feature[key] = spectral_entropy(stage, method="shannon")
+        save_feature_dict("SpecShanEn", subject_path, feature)
+        print("done")
 
     if specPermEn and not specPermEn_done:
         feature = {}
-        print('Computing spectral permutation entropy...', end='', flush=True)
+        print("Computing spectral permutation entropy...", end="", flush=True)
         for key, stage in stages.items():
-            feature[key] = spectral_entropy(stage, method='permutation')
-        save_feature_dict('SpecPermEn', subject_path, feature)
-        print('done')
+            feature[key] = spectral_entropy(stage, method="permutation")
+        save_feature_dict("SpecPermEn", subject_path, feature)
+        print("done")
 
     if specSampEn and not specSampEn_done:
         feature = {}
-        print('Computing spectral sample entropy...', end='', flush=True)
+        print("Computing spectral sample entropy...", end="", flush=True)
         for key, stage in stages.items():
-            feature[key] = spectral_entropy(stage, method='sample')
-        save_feature_dict('SpecSampEn', subject_path, feature)
-        print('done')
+            feature[key] = spectral_entropy(stage, method="sample")
+        save_feature_dict("SpecSampEn", subject_path, feature)
+        print("done")
+
