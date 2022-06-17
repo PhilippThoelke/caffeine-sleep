@@ -23,7 +23,7 @@ def load_data(data_path, hypnogram_path, dtype=None):
         return data.astype(dtype), hypnogram.astype(dtype)
 
 
-def extract_sleep_stages(data, hypnogram):
+def extract_sleep_stages(data, hyp):
     """
     Extracts sleep stages from EEG data using a hypnogram, epochs from the same sleep stage are grouped.
 
@@ -33,28 +33,24 @@ def extract_sleep_stages(data, hypnogram):
     Returns:
         dictionary with sleep stage names as keys and EEG epochs as values with shape (electrodes x epoch steps x epochs)
     """
-    if data.shape[2] != hypnogram.shape[0]:
+    if data.shape[2] != hyp.shape[0]:
         # the epoch count does not match the hypnogram length, adjusting EEG data shape
-        data = data[:, :, : hypnogram.shape[0]]
+        data = data[:, :, : hyp.shape[0]]
 
     # set hypnogram values of AWA stage after the first sleep to 6
-    mask = np.ones(hypnogram.shape)
-    mask[: np.where(hypnogram != 0)[0][0]] = 0
-    hypnogram[(hypnogram == 0) & (mask == 1)] = 6
+    mask = np.ones(hyp.shape)
+    mask[: np.where(hyp != 0)[0][0]] = 0
+    hyp[(hyp == 0) & (mask == 1)] = 6
 
     # create a dictionary with entries for each sleep stage
     return {
-        "AWA": data[:, :, (hypnogram == 0) | (hypnogram == 6)],
-        "AWSL": data[:, :, hypnogram == 6],
-        "N1": data[:, :, hypnogram == 1],
-        "N2": data[:, :, hypnogram == 2],
-        "N3": data[:, :, (hypnogram == 3) | (hypnogram == 4)],
-        "NREM": data[
-            :,
-            :,
-            (hypnogram == 1) | (hypnogram == 2) | (hypnogram == 3) | (hypnogram == 4),
-        ],
-        "REM": data[:, :, hypnogram == 5],
+        "AWA": data[:, :, (hyp == 0) | (hyp == 6)],
+        "AWSL": data[:, :, hyp == 6],
+        "N1": data[:, :, hyp == 1],
+        "N2": data[:, :, hyp == 2],
+        "N3": data[:, :, (hyp == 3) | (hyp == 4)],
+        "NREM": data[:, :, (hyp == 1) | (hyp == 2) | (hyp == 3) | (hyp == 4),],
+        "REM": data[:, :, hyp == 5],
     }
 
 
