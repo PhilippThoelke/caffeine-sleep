@@ -3,11 +3,14 @@ import sys
 import pickle
 import numpy as np
 from joblib import Parallel, delayed
-from matplotlib import pyplot as plt
-from sklearn import model_selection, ensemble, metrics
+from sklearn import model_selection, ensemble
 
+
+# caffeine dose: 200 or 400 (can be overwritten using command line arguments)
 CAF_DOSE = 200
+# number of random forests that should be trained for robustnes
 iterations = 1000
+# sleep stage index (can be overwritten using command line arguments)
 stage_index = 0
 
 # allow to set the caffeine dose with a command line argument
@@ -18,14 +21,11 @@ if len(sys.argv) > 1:
 if len(sys.argv) > 2:
     stage_index = int(sys.argv[2])
 
-DATA_PATH = f"/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/Features{CAF_DOSE}/Combined"
-RESULTS_PATH = f"/home/pthoelke/projects/def-kjerbi/pthoelke/caffeine/results/randomForest_avg{CAF_DOSE}"
+DATA_PATH = f"data/Features{CAF_DOSE}/Combined"
+RESULTS_PATH = f"results/randomForest_avg{CAF_DOSE}"
 
 STAGES = ["AWSL", "NREM", "REM"]
 STAGE = STAGES[stage_index]
-
-# boolean indicating whether SpecPermEn should be included
-INCLUDE_SPEC_PERM = True
 
 # load data
 with open(os.path.join(DATA_PATH, "data_avg.pickle"), "rb") as file:
@@ -39,32 +39,16 @@ with open(os.path.join(DATA_PATH, "labels_avg.pickle"), "rb") as file:
 with open(os.path.join(DATA_PATH, "groups_avg.pickle"), "rb") as file:
     groups = pickle.load(file)[STAGE]
 
-if INCLUDE_SPEC_PERM:
-    # generate a feature name vector WITH SpecPermEn
-    feature_names = np.concatenate(
-        [[feature + "-" + str(i) for i in range(20)] for feature in data.keys()]
-    )
-else:
-    # generate a feature name vector WITHOUT SpecPermEn
-    feature_names = np.concatenate(
-        [
-            [feature + "-" + str(i) for i in range(20)]
-            for feature in data.keys()
-            if "SpecPermEn" not in feature
-        ]
-    )
-
-print(
-    f"Multi feature random forest, include SpecPermEn: {INCLUDE_SPEC_PERM}, CAF{CAF_DOSE}, stage {STAGE}"
+# generate a feature name vector WITH SpecPermEn
+feature_names = np.concatenate(
+    [[feature + "-" + str(i) for i in range(20)] for feature in data.keys()]
 )
+
+print(f"Multi feature random forest: CAF{CAF_DOSE}, stage {STAGE}")
 
 x = []
 # create a sample matrix from the data dict
 for feature in data.keys():
-    if not INCLUDE_SPEC_PERM:
-        if "SpecPermEn" in feature:
-            # skip SpecPermEn if INCLUDE_SPEC_PERM is false
-            continue
     x.append(data[feature])
 x = np.concatenate(x, axis=1)
 
@@ -114,7 +98,7 @@ def train(train, test):
 
 # perform grid search and training n times
 perm = np.random.permutation(len(cv_split))
-results = Parallel(n_jobs=15)(
+results = Parallel(n_jobs=-1)(
     delayed(train)(*cv_split[perm[i]]) for i in range(iterations)
 )
 
@@ -124,35 +108,14 @@ scores = [result[1] for result in results]
 
 print("mean score:", np.mean(scores), "\n", flush=True)
 
-if INCLUDE_SPEC_PERM:
-    # save the trained estimators
-    with open(
-        os.path.join(RESULTS_PATH, f"specpermen_importances-{STAGE}.pickle"), "wb"
-    ) as file:
-        pickle.dump(importances, file)
+# save the trained estimators
+with open(os.path.join(RESULTS_PATH, f"importances-{STAGE}.pickle"), "wb") as file:
+    pickle.dump(importances, file)
 
-    # save the testing data corresponding to each of the estimators
-    with open(
-        os.path.join(RESULTS_PATH, f"specpermen_scores-{STAGE}.pickle"), "wb"
-    ) as file:
-        pickle.dump(scores, file)
+# save the testing data corresponding to each of the estimators
+with open(os.path.join(RESULTS_PATH, f"scores-{STAGE}.pickle"), "wb") as file:
+    pickle.dump(scores, file)
 
-    # save the feature name vector
-    with open(
-        os.path.join(RESULTS_PATH, f"specpermen_feature_names-{STAGE}.pickle"), "wb"
-    ) as file:
-        pickle.dump(feature_names, file)
-else:
-    # save the trained estimators
-    with open(os.path.join(RESULTS_PATH, f"importances-{STAGE}.pickle"), "wb") as file:
-        pickle.dump(importances, file)
-
-    # save the testing data corresponding to each of the estimators
-    with open(os.path.join(RESULTS_PATH, f"scores-{STAGE}.pickle"), "wb") as file:
-        pickle.dump(scores, file)
-
-    # save the feature name vector
-    with open(
-        os.path.join(RESULTS_PATH, f"feature_names-{STAGE}.pickle"), "wb"
-    ) as file:
-        pickle.dump(feature_names, file)
+# save the feature name vector
+with open(os.path.join(RESULTS_PATH, f"feature_names-{STAGE}.pickle"), "wb") as file:
+    pickle.dump(feature_names, file)
