@@ -9,9 +9,9 @@ from sklearn import model_selection, ensemble
 # caffeine dose: 200 or 400 (can be overwritten using command line arguments)
 CAF_DOSE = 200
 # number of random forests that should be trained for robustnes
-iterations = 1000
+ITERATIONS = 1000
 # sleep stage index (can be overwritten using command line arguments)
-stage_index = 0
+STAGE_INDEX = 0
 
 # allow to set the caffeine dose with a command line argument
 if len(sys.argv) > 1:
@@ -19,13 +19,13 @@ if len(sys.argv) > 1:
 
 # allow to set the sleep stage with a command line argument
 if len(sys.argv) > 2:
-    stage_index = int(sys.argv[2])
+    STAGE_INDEX = int(sys.argv[2])
 
 DATA_PATH = f"data/Features{CAF_DOSE}/Combined"
 RESULTS_PATH = f"results/randomForest_avg{CAF_DOSE}"
 
 STAGES = ["AWSL", "NREM", "REM"]
-STAGE = STAGES[stage_index]
+STAGE = STAGES[STAGE_INDEX]
 
 # load data
 with open(os.path.join(DATA_PATH, "data_avg.pickle"), "rb") as file:
@@ -99,7 +99,7 @@ def train(train, test):
 # perform grid search and training n times
 perm = np.random.permutation(len(cv_split))
 results = Parallel(n_jobs=-1)(
-    delayed(train)(*cv_split[perm[i]]) for i in range(iterations)
+    delayed(train)(*cv_split[perm[i]]) for i in range(ITERATIONS)
 )
 
 # extract importances and accuracies for the n random forests
