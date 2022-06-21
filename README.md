@@ -23,7 +23,7 @@ The analysis is split up into three parts: statistics, single-feature machine le
 The `Statistics.ipynb` notebook contains the code used for the statistical analysis of the caffeine vs. placebo condition for all features. It runs permutation t-tests and subsequently generates a figure, showing the statistical results visually.
 
 2. single-feature ML:
-#### TODO
+Run `SingleFeatureML-Classifier.py` to train and evaluate a machine learning classifier on the previously extracted features. You can select the classifier to train through command line arguments. You can run the script without arguments to get some instructions. Final accuracy metrics will be printed after finishing training and a summary of the results is saved as a pickle file. Afterwards, use the `SingleFeatureML-Figures.ipynb` notebook to visualize and compare results between classifiers.
 
 3. multi-feature ML:
 #### TODO
