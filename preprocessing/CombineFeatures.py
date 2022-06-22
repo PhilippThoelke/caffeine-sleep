@@ -10,10 +10,10 @@ CAF_DOSE = 200
 MIN_AGE = -1  # -1 for no minimum age
 MAX_AGE = -1  # -1 for no maximum age
 
-FEATURES_PATH = f"data/Features{CAF_DOSE}_redo"
-RESULT_PATH = f"data/Features{CAF_DOSE}_redo/Combined"
+FEATURES_PATH = f"data/Features{CAF_DOSE}"
+RESULT_PATH = f"data/Features{CAF_DOSE}/Combined"
 SUBJECTS_PATH = f"data/CAF_{CAF_DOSE}_Inventaire.csv"
-DATA_PATH = "data/redo"
+DATA_PATH = "data/"
 
 BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
 
