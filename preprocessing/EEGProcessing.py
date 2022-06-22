@@ -2,6 +2,8 @@ import os
 import glob
 import numpy as np
 from scipy import signal, stats
+from neurokit2.complexity import complexity_hurst
+from joblib import Parallel, delayed
 
 
 def load_data(data_path, hypnogram_path, dtype=None):
@@ -389,3 +391,23 @@ def spectral_entropy(stage, method="shannon"):
                 # unknown entropy method
                 raise NotImplementedError(f'Entropy type "{method}" is unknown')
     return spec_entropy
+
+
+def hurst_exponent(stage):
+    """
+    Computes the Hurst exponent for one sleep stage with Anis-Lloyd-Peters correction.
+
+    Args:
+        stage: EEG data over which the spectral entropy should be computed (electrodes x epoch steps x epochs)
+
+    Returns:
+        hurst exponent for each individual time series (electrodes x epochs)
+    """
+    hurst = np.empty((stage.shape[0], stage.shape[2]))
+    for elec in range(stage.shape[0]):
+        result = Parallel(n_jobs=-1)(
+            delayed(complexity_hurst)(stage[elec, :, epoch])
+            for epoch in range(stage.shape[2])
+        )
+        hurst[elec] = [r[0] for r in result]
+    return hurst
