@@ -11,6 +11,7 @@ from EEGProcessing import (
     permutation_entropy,
     sample_entropy,
     spectral_entropy,
+    fooof_1_over_f,
 )
 
 # caffeine dose: 200 or 400
@@ -26,13 +27,14 @@ FEATURES_PATH = f"data/Features{CAF_DOSE}_redo"
 SPLIT_STAGES = False
 
 # which features to compute
-psd = True
+psd = False
 shanEn = False
 permEn = False
 sampEn = False
-specShanEn = True
+specShanEn = False
 specPermEn = False
 specSampEn = False
+oneOverF = True
 
 
 def save_feature_dict(name, folder_path, feature_dict):
@@ -58,6 +60,7 @@ while len(subject_ids) > len(done_subjects):
     psd_done = False
     shanEn_done, permEn_done, sampEn_done = [False] * 3
     specShanEn_done, specPermEn_done, specSampEn_done = [False] * 3
+    oneOverF_done = False
 
     subject_id = subject_ids.iloc[0]
     i = 1
@@ -89,6 +92,8 @@ while len(subject_ids) > len(done_subjects):
             create_folder("SpecPermEn", subject_path)
         if specSampEn:
             create_folder("SpecSampEn", subject_path)
+        if oneOverF:
+            create_folder("OneOverF", subject_path)
         print("done")
     else:
         features = [
@@ -138,6 +143,12 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("SpecSampEn", subject_path)
+        if oneOverF:
+            if "OneOverF" in features:
+                oneOverF_done = True
+            else:
+                finished = False
+                create_folder("OneOverF", subject_path)
 
         if finished:
             print("Features already computed, moving on.")
@@ -240,3 +251,10 @@ while len(subject_ids) > len(done_subjects):
         save_feature_dict("SpecSampEn", subject_path, feature)
         print("done")
 
+    if oneOverF and not oneOverF_done:
+        feature = {}
+        print("Computing 1/f...", end="", flush=True)
+        for key, stage in stages.items():
+            feature[key] = fooof_1_over_f(stage)
+        save_feature_dict("OneOverF", subject_path, feature)
+        print("done")
