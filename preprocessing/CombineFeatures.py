@@ -157,10 +157,10 @@ def get_psd_labels_groups(data_dict):
     return labels, groups, group_names
 
 
-def get_entropy(data_dict, entropy_type):
-    print(entropy_type, "...", sep="")
+def get_feature(data_dict, feature_name):
+    print(feature_name, "...", sep="")
 
-    entropy = Loader.load_feature(entropy_type, CAF_DOSE, FEATURES_PATH)
+    feature = Loader.load_feature(feature_name, CAF_DOSE, FEATURES_PATH)
     meta_info = pd.read_csv(SUBJECTS_PATH, index_col=0)
 
     with open(
@@ -168,11 +168,11 @@ def get_entropy(data_dict, entropy_type):
     ) as file:
         drop_counts = pickle.load(file)
 
-    for stage in entropy.keys():
+    for stage in feature.keys():
         curr_data = []
         curr_awsl = []
 
-        for subject_id, subject in entropy[stage].items():
+        for subject_id, subject in feature[stage].items():
             age = meta_info[meta_info["Subject_id"] == subject_id]["Age"].values[0]
             if MIN_AGE >= 0:
                 if age < MIN_AGE:
@@ -198,21 +198,21 @@ def get_entropy(data_dict, entropy_type):
                 if curr.size > 0:
                     curr_awsl.append(curr)
                 else:
-                    print(f"No AWSL data for subject {subject_id} in {entropy_type}")
+                    print(f"No AWSL data for subject {subject_id} in {feature_name}")
 
-        data_dict[stage][entropy_type] = np.concatenate(curr_data, axis=1).T
+        data_dict[stage][feature_name] = np.concatenate(curr_data, axis=1).T
 
         # manage AWSL stage
         if stage == "AWA":
-            data_dict["AWSL"][entropy_type] = np.concatenate(curr_awsl, axis=1).T
+            data_dict["AWSL"][feature_name] = np.concatenate(curr_awsl, axis=1).T
 
-    if "N1" in data_dict:
+    if "N1" in data_dict and not feature_name in data_dict["NREM"]:
         nrem = [
-            data_dict["N1"][entropy_type],
-            data_dict["N2"][entropy_type],
-            data_dict["N3"][entropy_type],
+            data_dict["N1"][feature_name],
+            data_dict["N2"][feature_name],
+            data_dict["N3"][feature_name],
         ]
-        data_dict["NREM"][entropy_type] = np.concatenate(nrem, axis=0)
+        data_dict["NREM"][feature_name] = np.concatenate(nrem, axis=0)
 
 
 def normalize(data_dict, groups_dict):
@@ -246,11 +246,11 @@ if __name__ == "__main__":
 
     print("-------------------- Concatenating features --------------------")
     labels, groups, names = get_psd_labels_groups(data)
-    get_entropy(data, "SpecShanEn")
-    get_entropy(data, "SampEn")
-    get_entropy(data, "SpecSampEn")
-    get_entropy(data, "PermEn")
-    get_entropy(data, "SpecPermEn")
+    get_feature(data, "SpecShanEn")
+    get_feature(data, "SampEn")
+    get_feature(data, "SpecSampEn")
+    get_feature(data, "PermEn")
+    get_feature(data, "SpecPermEn")
 
     print("-------------------- Averaging features --------------------")
 
