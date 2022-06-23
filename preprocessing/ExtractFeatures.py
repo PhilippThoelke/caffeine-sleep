@@ -144,7 +144,7 @@ while len(subject_ids) > len(done_subjects):
                 finished = False
                 create_folder("SpecSampEn", subject_path)
         if hurstExp:
-            if "hurstExp" in features:
+            if "HurstExp" in features:
                 hurstExp_done = True
             else:
                 finished = False
