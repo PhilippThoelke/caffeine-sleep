@@ -206,7 +206,7 @@ def get_entropy(data_dict, entropy_type):
         if stage == "AWA":
             data_dict["AWSL"][entropy_type] = np.concatenate(curr_awsl, axis=1).T
 
-    if "N1" in data_dict:
+    if "N1" in data_dict and not entropy_type in data_dict["NREM"]:
         nrem = [
             data_dict["N1"][entropy_type],
             data_dict["N2"][entropy_type],
