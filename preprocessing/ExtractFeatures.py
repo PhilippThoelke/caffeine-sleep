@@ -13,6 +13,7 @@ from EEGProcessing import (
     spectral_entropy,
     hurst_exponent,
     fooof_1_over_f,
+    zero_one_chaos,
 )
 
 # caffeine dose: 200 or 400
@@ -28,15 +29,16 @@ FEATURES_PATH = f"data/Features{CAF_DOSE}"
 SPLIT_STAGES = False
 
 # which features to compute
-psd = False
+psd = True
 shanEn = False
-permEn = False
-sampEn = False
-specShanEn = False
-specPermEn = False
-specSampEn = False
-hurstExp = False
+permEn = True
+sampEn = True
+specShanEn = True
+specPermEn = True
+specSampEn = True
+hurstExp = True
 oneOverF = True
+zeroOneChaos = True
 
 
 def save_feature_dict(name, folder_path, feature_dict):
@@ -62,7 +64,7 @@ while len(subject_ids) > len(done_subjects):
     psd_done = False
     shanEn_done, permEn_done, sampEn_done = [False] * 3
     specShanEn_done, specPermEn_done, specSampEn_done = [False] * 3
-    hurstExp_done, oneOverF_done = False, False
+    hurstExp_done, oneOverF_done, zeroOneChaos_done = False, False, False
 
     subject_id = subject_ids.iloc[0]
     i = 1
@@ -98,6 +100,8 @@ while len(subject_ids) > len(done_subjects):
             create_folder("HurstExp", subject_path)
         if oneOverF:
             create_folder("OneOverF", subject_path)
+        if zeroOneChaos:
+            create_folder("ZeroOneChaos", subject_path)
         print("done")
     else:
         features = [
@@ -159,6 +163,12 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("OneOverF", subject_path)
+        if zeroOneChaos:
+            if "ZeroOneChaos" in features:
+                zeroOneChaos_done = True
+            else:
+                finished = False
+                create_folder("ZeroOneChaos", subject_path)
 
         if finished:
             print("Features already computed, moving on.")
@@ -275,4 +285,12 @@ while len(subject_ids) > len(done_subjects):
         for key, stage in stages.items():
             feature[key] = fooof_1_over_f(stage)
         save_feature_dict("OneOverF", subject_path, feature)
+        print("done")
+
+    if zeroOneChaos and not zeroOneChaos_done:
+        feature = {}
+        print("Computing 0-1 chaos test...", end="", flush=True)
+        for key, stage in stages.items():
+            feature[key] = zero_one_chaos(stage)
+        save_feature_dict("ZeroOneChaos", subject_path, feature)
         print("done")

@@ -253,6 +253,7 @@ if __name__ == "__main__":
     get_feature(data, "SpecPermEn")
     get_feature(data, "HurstExp")
     get_feature(data, "OneOverF")
+    get_feature(data, "ZeroOneChaos")
 
     print("-------------------- Averaging features --------------------")
 

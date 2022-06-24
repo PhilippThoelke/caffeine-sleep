@@ -441,3 +441,56 @@ def fooof_1_over_f(stage, frequency=256, freq_range=[3, 35]):
             for epoch in range(stage.shape[2])
         )
     return oof
+
+
+def _z1_chaos_test(x, sigma=1, rand_seed=0):
+    np.random.seed(rand_seed)
+    N = len(x)
+    a = np.arange(N)
+    t = np.arange(int(round(N / 10)))
+    M = np.zeros(int(round(N / 10)))
+    # Choose a coefficient c within the interval pi/5 to 3pi/5 to avoid
+    # resonances. Do this 100 times.
+    c = np.pi / 5 + np.random.random_sample(100) * 3 * np.pi / 5
+    k_corr = np.zeros(100)
+
+    for i in range(100):
+        # Create a 2-d system driven by the data
+        p = np.cumsum(x * np.cos(a * c[i]))
+        q = np.cumsum(x * np.sin(a * c[i]))
+
+        for n in range(int(round(N / 10))):
+            # Calculate the (time-averaged) mean-square displacement,
+            # subtracting a correction term (Gottwald & Melbourne, 2009)
+            # and adding a noise term scaled by sigma (Dawes & Freeland, 2008)
+            M[n] = (
+                np.mean(
+                    (p[n + 1 :] - p[: -n - 1]) ** 2 + (q[n + 1 :] - q[: -n - 1]) ** 2
+                )
+                - np.mean(x) ** 2 * (1 - np.cos(n * c[i])) / (1 - np.cos(c[i]))
+                + sigma * (np.random.random() - 0.5)
+            )
+
+        k_corr[i], _ = stats.pearsonr(t, M)
+
+    return np.median(k_corr)
+
+
+def zero_one_chaos(stage):
+    """
+    Compute the 0-1 chaos test.
+
+    Args:
+        stage: raw EEG data (electrodes x epoch steps x epochs)
+
+    Returns:
+        0-1 chaos test of the EEG (electrodes x epochs)
+    """
+    from tqdm import trange
+    zo = np.empty((stage.shape[0], stage.shape[2]))
+    for elec in range(stage.shape[0]):
+        zo[elec] = Parallel(n_jobs=-1)(
+            delayed(_z1_chaos_test)(stage[elec, :, epoch])
+            for epoch in trange(stage.shape[2])
+        )
+    return zo
