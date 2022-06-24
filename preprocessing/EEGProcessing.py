@@ -420,4 +420,3 @@ def fooof_1_over_f(stage, frequency=256, freq_range=[3, 35]):
             for epoch in range(stage.shape[2])
         )
     return oof
-
