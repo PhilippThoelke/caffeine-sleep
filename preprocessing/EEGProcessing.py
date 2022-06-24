@@ -399,7 +399,7 @@ def hurst_exponent(stage):
     Computes the Hurst exponent for one sleep stage with Anis-Lloyd-Peters correction.
 
     Args:
-        stage: EEG data over which the spectral entropy should be computed (electrodes x epoch steps x epochs)
+        stage: raw EEG data (electrodes x epoch steps x epochs)
 
     Returns:
         hurst exponent for each individual time series (electrodes x epochs)
@@ -426,7 +426,7 @@ def fooof_1_over_f(stage, frequency=256, freq_range=[3, 35]):
     is computed using Welch's method.
 
     Args:
-        stage: EEG data over which the spectral entropy should be computed (electrodes x epoch steps x epochs)
+        stage: raw EEG data (electrodes x epoch steps x epochs)
         frequency: the sampling frequency of the EEG
         freq_range: the frequency range to fit FOOOF on
 
