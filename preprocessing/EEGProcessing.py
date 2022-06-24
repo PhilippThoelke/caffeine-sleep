@@ -486,11 +486,10 @@ def zero_one_chaos(stage):
     Returns:
         0-1 chaos test of the EEG (electrodes x epochs)
     """
-    from tqdm import trange
     zo = np.empty((stage.shape[0], stage.shape[2]))
     for elec in range(stage.shape[0]):
         zo[elec] = Parallel(n_jobs=-1)(
             delayed(_z1_chaos_test)(stage[elec, :, epoch])
-            for epoch in trange(stage.shape[2])
+            for epoch in range(stage.shape[2])
         )
     return zo
