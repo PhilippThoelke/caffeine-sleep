@@ -3,6 +3,7 @@ import glob
 import numpy as np
 from scipy import signal, stats
 from neurokit2.complexity import complexity_hurst
+from fooof import FOOOF
 from joblib import Parallel, delayed
 
 
@@ -411,3 +412,32 @@ def hurst_exponent(stage):
         )
         hurst[elec] = [r[0] for r in result]
     return hurst
+
+
+def _compute_1_over_f(f, p, freq_range):
+    fm = FOOOF()
+    fm.fit(f, p, freq_range=freq_range)
+    return fm.aperiodic_params_[1]
+
+
+def fooof_1_over_f(stage, frequency=256, freq_range=[3, 35]):
+    """
+    Computes the 1/f activity (aperiodic component) using the FOOOF algorithm. The power spectrum
+    is computed using Welch's method.
+
+    Args:
+        stage: EEG data over which the spectral entropy should be computed (electrodes x epoch steps x epochs)
+        frequency: the sampling frequency of the EEG
+        freq_range: the frequency range to fit FOOOF on
+
+    Returns:
+        1/f activity of the EEG (electrodes x epochs)
+    """
+    f, psd = signal.welch(stage, frequency, axis=1)
+    oof = np.empty((stage.shape[0], stage.shape[2]))
+    for elec in range(stage.shape[0]):
+        oof[elec] = Parallel(n_jobs=-1)(
+            delayed(_compute_1_over_f)(f, psd[elec, :, epoch], freq_range)
+            for epoch in range(stage.shape[2])
+        )
+    return oof

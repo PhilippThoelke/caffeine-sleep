@@ -12,6 +12,7 @@ from EEGProcessing import (
     sample_entropy,
     spectral_entropy,
     hurst_exponent,
+    fooof_1_over_f,
 )
 
 # caffeine dose: 200 or 400
@@ -21,20 +22,21 @@ SUBJECTS_PATH = f"data/CAF_{CAF_DOSE}_Inventaire.csv"
 # directory with the raw EEG data
 DATA_PATH = f"data/raw_eeg{CAF_DOSE}"
 # directory where features will be stored
-FEATURES_PATH = f"data/Features{CAF_DOSE}"
+FEATURES_PATH = f"data/Features{CAF_DOSE}_redo"
 # if True, use a hypnogram to split the raw EEG data into sleep stages
 # if False, load data that is already split into sleep stages
 SPLIT_STAGES = False
 
 # which features to compute
-psd = True
+psd = False
 shanEn = False
-permEn = True
-sampEn = True
-specShanEn = True
-specPermEn = True
-specSampEn = True
-hurstExp = True
+permEn = False
+sampEn = False
+specShanEn = False
+specPermEn = False
+specSampEn = False
+hurstExp = False
+oneOverF = True
 
 
 def save_feature_dict(name, folder_path, feature_dict):
@@ -60,7 +62,7 @@ while len(subject_ids) > len(done_subjects):
     psd_done = False
     shanEn_done, permEn_done, sampEn_done = [False] * 3
     specShanEn_done, specPermEn_done, specSampEn_done = [False] * 3
-    hurstExp_done = False
+    hurstExp_done, oneOverF_done = False, False
 
     subject_id = subject_ids.iloc[0]
     i = 1
@@ -94,6 +96,8 @@ while len(subject_ids) > len(done_subjects):
             create_folder("SpecSampEn", subject_path)
         if hurstExp:
             create_folder("HurstExp", subject_path)
+        if oneOverF:
+            create_folder("OneOverF", subject_path)
         print("done")
     else:
         features = [
@@ -149,6 +153,12 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("HurstExp", subject_path)
+        if oneOverF:
+            if "OneOverF" in features:
+                oneOverF_done = True
+            else:
+                finished = False
+                create_folder("OneOverF", subject_path)
 
         if finished:
             print("Features already computed, moving on.")
@@ -259,3 +269,10 @@ while len(subject_ids) > len(done_subjects):
         save_feature_dict("HurstExp", subject_path, feature)
         print("done")
 
+    if oneOverF and not oneOverF_done:
+        feature = {}
+        print("Computing 1/f...", end="", flush=True)
+        for key, stage in stages.items():
+            feature[key] = fooof_1_over_f(stage)
+        save_feature_dict("OneOverF", subject_path, feature)
+        print("done")
