@@ -496,13 +496,20 @@ def zero_one_chaos(stage):
     return zo
 
 
+def avalanche_wrapper(x, frequency, max_iei, threshold):
+    try:
+        return detect_avalanches(x, frequency, max_iei=max_iei, threshold=threshold)
+    except TypeError:
+        return []
+
+
 def compute_avalanches(stage, frequency=256):
     result = Parallel(n_jobs=-1)(
-        delayed(detect_avalanches)(
+        delayed(avalanche_wrapper)(
             stage[:, :, epoch], frequency, max_iei=0.008, threshold=2
         )
         for epoch in range(stage.shape[2])
     )
-    sizes = sum([[a["size"] for a in avs[0]] for avs in result], [])
+    sizes = sum([[a["size"] for a in avs[0]] for avs in result if len(avs) > 0], [])
     power_laws = fit_powerlaw(sizes)
     return power_laws
