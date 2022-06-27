@@ -39,7 +39,7 @@ def load_feature(feature_name, caf_dose, features_path):
                 feature[stage] = {}
             # load the file containing the data for the current stage and subject
             feature[stage][subject_id] = np.load(
-                os.path.join(path, f"{feature_name}_{stage}.npy")
+                os.path.join(path, f"{feature_name}_{stage}.npy"), allow_pickle=True
             )
     return feature
 
