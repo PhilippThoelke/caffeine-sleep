@@ -4,6 +4,7 @@ import numpy as np
 from scipy import signal, stats
 from neurokit2.complexity import complexity_hurst
 from fooof import FOOOF
+from avalanche import detect_avalanches, fit_powerlaw
 from joblib import Parallel, delayed
 
 
@@ -493,3 +494,15 @@ def zero_one_chaos(stage):
             for epoch in range(stage.shape[2])
         )
     return zo
+
+
+def compute_avalanches(stage, frequency=256):
+    result = Parallel(n_jobs=-1)(
+        delayed(detect_avalanches)(
+            stage[:, :, epoch], frequency, max_iei=0.008, threshold=2
+        )
+        for epoch in range(stage.shape[2])
+    )
+    sizes = sum([[a["size"] for a in avs[0]] for avs in result], [])
+    power_laws = fit_powerlaw(sizes)
+    return power_laws

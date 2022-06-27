@@ -14,6 +14,7 @@ from EEGProcessing import (
     hurst_exponent,
     fooof_1_over_f,
     zero_one_chaos,
+    compute_avalanches,
 )
 
 # caffeine dose: 200 or 400
@@ -23,22 +24,23 @@ SUBJECTS_PATH = f"data/CAF_{CAF_DOSE}_Inventaire.csv"
 # directory with the raw EEG data
 DATA_PATH = f"data/raw_eeg{CAF_DOSE}"
 # directory where features will be stored
-FEATURES_PATH = f"data/Features{CAF_DOSE}"
+FEATURES_PATH = f"data/Features{CAF_DOSE}_redo"
 # if True, use a hypnogram to split the raw EEG data into sleep stages
 # if False, load data that is already split into sleep stages
 SPLIT_STAGES = False
 
 # which features to compute
-psd = True
+psd = False
 shanEn = False
-permEn = True
-sampEn = True
-specShanEn = True
-specPermEn = True
-specSampEn = True
-hurstExp = True
-oneOverF = True
-zeroOneChaos = True
+permEn = False
+sampEn = False
+specShanEn = False
+specPermEn = False
+specSampEn = False
+hurstExp = False
+oneOverF = False
+zeroOneChaos = False
+avalanche = True
 
 
 def save_feature_dict(name, folder_path, feature_dict):
@@ -64,7 +66,12 @@ while len(subject_ids) > len(done_subjects):
     psd_done = False
     shanEn_done, permEn_done, sampEn_done = [False] * 3
     specShanEn_done, specPermEn_done, specSampEn_done = [False] * 3
-    hurstExp_done, oneOverF_done, zeroOneChaos_done = False, False, False
+    hurstExp_done, oneOverF_done, zeroOneChaos_done, avalanche_done = (
+        False,
+        False,
+        False,
+        False,
+    )
 
     subject_id = subject_ids.iloc[0]
     i = 1
@@ -102,6 +109,8 @@ while len(subject_ids) > len(done_subjects):
             create_folder("OneOverF", subject_path)
         if zeroOneChaos:
             create_folder("ZeroOneChaos", subject_path)
+        if avalanche:
+            create_folder("Avalanche", subject_path)
         print("done")
     else:
         features = [
@@ -169,6 +178,12 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("ZeroOneChaos", subject_path)
+        if avalanche:
+            if "Avalanche" in features:
+                avalanche_done = True
+            else:
+                finished = False
+                create_folder("Avalanche", subject_path)
 
         if finished:
             print("Features already computed, moving on.")
@@ -293,4 +308,12 @@ while len(subject_ids) > len(done_subjects):
         for key, stage in stages.items():
             feature[key] = zero_one_chaos(stage)
         save_feature_dict("ZeroOneChaos", subject_path, feature)
+        print("done")
+
+    if avalanche and not avalanche_done:
+        feature = {}
+        print("Computing avalanches...", end="", flush=True)
+        for key, stage in stages.items():
+            feature[key] = compute_avalanches(stage)
+        save_feature_dict("Avalanche", subject_path, feature)
         print("done")
