@@ -6,15 +6,21 @@ import numpy as np
 import pandas as pd
 
 
+# caffeine dose: 200 or 400
 CAF_DOSE = 200
 MIN_AGE = -1  # -1 for no minimum age
 MAX_AGE = -1  # -1 for no maximum age
 
+# directory with extracted features for all subjects
 FEATURES_PATH = f"data/Features{CAF_DOSE}"
+# directory where combined and normalized features will be stored
 RESULT_PATH = f"data/Features{CAF_DOSE}/Combined"
+# path to the subject information CSV file
 SUBJECTS_PATH = f"data/CAF_{CAF_DOSE}_Inventaire.csv"
+# directory containing the sample_differences file from ComputeSampleDifferences.py
 DATA_PATH = "data/"
 
+# which frequency bands will be extracted
 BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
 
 
