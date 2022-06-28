@@ -19,6 +19,15 @@ RESULT_PATH = f"data/Features{CAF_DOSE}/Combined"
 SUBJECTS_PATH = f"data/CAF_{CAF_DOSE}_Inventaire.csv"
 # directory containing the sample_differences file from ComputeSampleDifferences.py
 DATA_PATH = "data/"
+#  if true, make sure that every subject has the same number of epochs per sleep stage
+BALANCE_EPOCHS = True
+# if true, leave the features raw and don't apply a z-transform
+NORMALIZE_FEATURES = True
+
+if BALANCE_EPOCHS:
+    RESULT_PATH = RESULT_PATH + "_balanced"
+if not NORMALIZE_FEATURES:
+    RESULT_PATH = RESULT_PATH + "_no_norm"
 
 # which frequency bands will be extracted
 BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
@@ -272,6 +281,34 @@ if __name__ == "__main__":
         groups_avg[stage] = []
         print(stage)
 
+        sample_mins = []
+        for i in range(len(np.unique(groups[stage]))):
+            plac_count = current[list(current.keys())[0]][
+                (groups[stage] == i) & (labels[stage] == 0)
+            ].shape[0]
+            caf_count = current[list(current.keys())[0]][
+                (groups[stage] == i) & (labels[stage] == 1)
+            ].shape[0]
+            if plac_count == 0 or caf_count == 0:
+                continue
+            sample_mins.append(min(plac_count, caf_count))
+        sample_mins = min(sample_mins)
+
+        permutations = {}
+        for i in range(len(np.unique(groups[stage]))):
+            permutations[i] = {
+                0: np.random.permutation(
+                    current[list(current.keys())[0]][
+                        (groups[stage] == i) & (labels[stage] == 0)
+                    ].shape[0]
+                )[:sample_mins],
+                1: np.random.permutation(
+                    current[list(current.keys())[0]][
+                        (groups[stage] == i) & (labels[stage] == 1)
+                    ].shape[0]
+                )[:sample_mins],
+            }
+
         added = set()
         dropped = []
         for feature in current.keys():
@@ -290,6 +327,10 @@ if __name__ == "__main__":
                         )
                     continue
 
+                if BALANCE_EPOCHS:
+                    data_0 = data_0[permutations[i][0]]
+                    data_1 = data_1[permutations[i][1]]
+
                 added.add(i)
                 data_avg[stage][feature].append(data_0.mean(axis=0))
                 data_avg[stage][feature].append(data_1.mean(axis=0))
@@ -303,9 +344,10 @@ if __name__ == "__main__":
         labels_avg[stage] = np.array(labels_avg[stage])
         groups_avg[stage] = np.array(groups_avg[stage])
 
-    print("-------------------- Normalizing samples --------------------")
-    normalize_avg(data_avg, groups_avg, data, groups)
-    normalize(data, groups)
+    if NORMALIZE_FEATURES:
+        print("-------------------- Normalizing samples --------------------")
+        normalize_avg(data_avg, groups_avg, data, groups)
+        normalize(data, groups)
 
     print("-------------------- Saving data --------------------")
 
@@ -339,6 +381,10 @@ if __name__ == "__main__":
         os.path.join(RESULT_PATH, f"groups_avg{age_suffix}.pickle"), "wb"
     ) as file:
         pickle.dump(groups_avg, file)
+    with open(
+        os.path.join(RESULT_PATH, f"groups_names{age_suffix}.pickle"), "wb"
+    ) as file:
+        pickle.dump(names, file)
 
     print("Done!")
 
