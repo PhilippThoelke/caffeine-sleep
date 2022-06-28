@@ -222,7 +222,7 @@ def fit_powerlaw(data, pmin=0.005):
     TvL = fit.distribution_compare('truncated_power_law', 'lognormal', 
                                    normalized_ratio=True)
 
-    return (pdf,
+    return (pdf, bins,
             fit.power_law.alpha, 
             fit.xmin, 
             fit.xmax, 
