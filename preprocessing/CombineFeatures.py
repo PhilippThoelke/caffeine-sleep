@@ -20,9 +20,11 @@ SUBJECTS_PATH = f"data/CAF_{CAF_DOSE}_Inventaire.csv"
 # directory containing the sample_differences file from ComputeSampleDifferences.py
 DATA_PATH = "data/"
 #  if true, make sure that every subject has the same number of epochs per sleep stage
-BALANCE_EPOCHS = True
+BALANCE_EPOCHS = False
 # if true, leave the features raw and don't apply a z-transform
 NORMALIZE_FEATURES = True
+# percentage of subjects to ignore when balancing (removes subjects with lowest number of sleep epochs)
+DROP_SUBJECTS_PCT = 10
 
 if BALANCE_EPOCHS:
     RESULT_PATH = RESULT_PATH + "_balanced"
@@ -281,33 +283,40 @@ if __name__ == "__main__":
         groups_avg[stage] = []
         print(stage)
 
-        sample_mins = []
-        for i in range(len(np.unique(groups[stage]))):
-            plac_count = current[list(current.keys())[0]][
-                (groups[stage] == i) & (labels[stage] == 0)
-            ].shape[0]
-            caf_count = current[list(current.keys())[0]][
-                (groups[stage] == i) & (labels[stage] == 1)
-            ].shape[0]
-            if plac_count == 0 or caf_count == 0:
-                continue
-            sample_mins.append(min(plac_count, caf_count))
-        sample_mins = min(sample_mins)
+        if BALANCE_EPOCHS:
+            sample_mins = []
+            for i in range(len(np.unique(groups[stage]))):
+                plac_count = current[list(current.keys())[0]][
+                    (groups[stage] == i) & (labels[stage] == 0)
+                ].shape[0]
+                caf_count = current[list(current.keys())[0]][
+                    (groups[stage] == i) & (labels[stage] == 1)
+                ].shape[0]
+                if plac_count == 0 or caf_count == 0:
+                    continue
+                sample_mins.append(min(plac_count, caf_count))
+            sample_mins = int(np.percentile(sample_mins, DROP_SUBJECTS_PCT))
 
-        permutations = {}
-        for i in range(len(np.unique(groups[stage]))):
-            permutations[i] = {
-                0: np.random.permutation(
-                    current[list(current.keys())[0]][
-                        (groups[stage] == i) & (labels[stage] == 0)
-                    ].shape[0]
-                )[:sample_mins],
-                1: np.random.permutation(
-                    current[list(current.keys())[0]][
-                        (groups[stage] == i) & (labels[stage] == 1)
-                    ].shape[0]
-                )[:sample_mins],
-            }
+            permutations = {}
+            for i in range(len(np.unique(groups[stage]))):
+                permutations[i] = {
+                    0: np.random.permutation(
+                        max(
+                            sample_mins,
+                            current[list(current.keys())[0]][
+                                (groups[stage] == i) & (labels[stage] == 0)
+                            ].shape[0],
+                        )
+                    )[:sample_mins],
+                    1: np.random.permutation(
+                        max(
+                            sample_mins,
+                            current[list(current.keys())[0]][
+                                (groups[stage] == i) & (labels[stage] == 1)
+                            ].shape[0],
+                        )
+                    )[:sample_mins],
+                }
 
         added = set()
         dropped = []
@@ -328,6 +337,10 @@ if __name__ == "__main__":
                     continue
 
                 if BALANCE_EPOCHS:
+                    if len(data_0) < len(permutations[i][0]) or len(data_1) < len(
+                        permutations[i][1]
+                    ):
+                        continue
                     data_0 = data_0[permutations[i][0]]
                     data_1 = data_1[permutations[i][1]]
 
