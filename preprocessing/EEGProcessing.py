@@ -503,13 +503,13 @@ def avalanche_wrapper(x, frequency, max_iei, threshold):
         return []
 
 
-def compute_avalanches(stage, frequency=256):
+def compute_avalanches(stage, frequency=256, metric="size"):
     result = Parallel(n_jobs=-1)(
         delayed(avalanche_wrapper)(
             stage[:, :, epoch], frequency, max_iei=0.008, threshold=2
         )
         for epoch in range(stage.shape[2])
     )
-    sizes = sum([[a["size"] for a in avs[0]] for avs in result if len(avs) > 0], [])
+    sizes = sum([[a[metric] for a in avs[0]] for avs in result if len(avs) > 0], [])
     power_laws = fit_powerlaw(sizes)
     return power_laws
