@@ -14,7 +14,7 @@ from sklearn import (
 
 CAF_DOSE = 200
 SIGNIFICANT_P = 0.05
-AGE_GROUP = 1  # -1: all, 0: up to age 30, 1: from age 30
+AGE_GROUP = -1  # -1: all, 0: up to age 30, 1: from age 30
 
 if len(sys.argv) > 2:
     CAF_DOSE = sys.argv[2]
