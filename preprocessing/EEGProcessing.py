@@ -504,9 +504,14 @@ def avalanche_wrapper(x, frequency, max_iei, threshold):
 
 
 def compute_avalanches(stage, frequency=256):
+    # channel-wise z-transform
+    stage = (stage - stage.mean(axis=(1, 2), keepdims=True)) / stage.std(
+        axis=(1, 2), keepdims=True
+    )
+    # detect avalanches
     result = Parallel(n_jobs=-1)(
         delayed(avalanche_wrapper)(
-            stage[:, :, epoch], frequency, max_iei=0.008, threshold=2
+            stage[:, :, epoch], frequency, max_iei=0.024, threshold=2
         )
         for epoch in range(stage.shape[2])
     )
