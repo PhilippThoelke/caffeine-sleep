@@ -48,11 +48,11 @@ elif AGE_GROUP == 1:
 elif AGE_GROUP != -1:
     raise Exception(f"Unknown age group {AGE_GROUP}")
 
-with open(os.path.join(DATA_PATH, "data_avg.pickle"), "rb") as file:
+with open(os.path.join(DATA_PATH, f"data_avg{age_suffix}.pickle"), "rb") as file:
     data = pickle.load(file)
-with open(os.path.join(DATA_PATH, "labels_avg.pickle"), "rb") as file:
+with open(os.path.join(DATA_PATH, f"labels_avg{age_suffix}.pickle"), "rb") as file:
     labels = pickle.load(file)
-with open(os.path.join(DATA_PATH, "groups_avg.pickle"), "rb") as file:
+with open(os.path.join(DATA_PATH, f"groups_avg{age_suffix}.pickle"), "rb") as file:
     groups = pickle.load(file)
 
 
@@ -117,7 +117,9 @@ for stage in STAGES:
             scores[stage][feature].append(score)
         print()
 
-path = os.path.join(RESULTS_PATH, f"singleML{CAF_DOSE}", f"scores_{CLASSIFIER}.pickle")
+path = os.path.join(
+    RESULTS_PATH, f"singleML{CAF_DOSE}", f"scores_{CLASSIFIER}{age_suffix}.pickle"
+)
 with open(path, "wb",) as file:
     pickle.dump(scores, file)
 
