@@ -523,7 +523,11 @@ def time_bin_events(events, bin_len):
     """
     if events.squeeze().ndim == 2:
         events = sum(events, axis=0)    
-    padded = concatenate((events, zeros(len(events) % bin_len)))
+    if len(events) % bin_len != 0:
+        pad_len = ((len(events) // bin_len) + 1) * bin_len - len(events)
+        padded = concatenate((events, zeros(pad_len)))
+    else:
+        padded = events
     binned = sum(padded.reshape(int(len(padded) / bin_len), bin_len), axis=1)
     
     return binned
