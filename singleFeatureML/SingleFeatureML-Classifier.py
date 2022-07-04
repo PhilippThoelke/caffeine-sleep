@@ -14,9 +14,13 @@ from sklearn import (
 
 CAF_DOSE = 200
 SIGNIFICANT_P = 0.05
+AGE_GROUP = 1  # -1: all, 0: up to age 30, 1: from age 30
 
 if len(sys.argv) > 2:
     CAF_DOSE = sys.argv[2]
+
+if len(sys.argv) > 3:
+    AGE_GROUP = int(sys.argv[3])
 
 CLASSIFIERS = [
     "SVM",
@@ -34,6 +38,15 @@ RESULTS_PATH = "results"
 
 STAGES = ["AWSL", "NREM", "REM"]
 BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
+
+# get age suffix for loading the data depending on age group parameter
+age_suffix = ""
+if AGE_GROUP == 0:
+    age_suffix = "_age_t30"
+elif AGE_GROUP == 1:
+    age_suffix = "_age_f30"
+elif AGE_GROUP != -1:
+    raise Exception(f"Unknown age group {AGE_GROUP}")
 
 with open(os.path.join(DATA_PATH, "data_avg.pickle"), "rb") as file:
     data = pickle.load(file)
