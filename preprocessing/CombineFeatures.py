@@ -245,7 +245,13 @@ def normalize(data_dict, groups_dict):
 def normalize_avg(data_avg, groups_avg, data, groups):
     # average data stage- and feature-wise
     for stage in data_avg.keys():
-        print(stage)
+        num_epochs = [
+            (groups[stage] == group).sum() for group in np.unique(groups_avg[stage])
+        ]
+        print(
+            f"{stage}: averaging using {np.mean(num_epochs):.2f} "
+            f"epochs on average (min: {np.min(num_epochs)})"
+        )
         for feature in data_avg[stage].keys():
             for group in np.unique(groups_avg[stage]):
                 mask_avg = groups_avg[stage] == group
