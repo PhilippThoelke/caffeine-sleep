@@ -63,7 +63,7 @@ def get_classifier(name, **kwargs):
 
 
 assert len(sys.argv) > 1, (
-    f"please provide the index of the classifier to train: "
+    f"please provide the index of the classifier to train as a command line argument: "
     f"{dict(zip(range(len(CLASSIFIERS)),CLASSIFIERS))}"
 )
 clf_id = int(sys.argv[1])
