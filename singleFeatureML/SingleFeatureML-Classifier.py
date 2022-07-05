@@ -15,6 +15,7 @@ from sklearn import (
 CAF_DOSE = 200
 SIGNIFICANT_P = 0.05
 AGE_GROUP = -1  # -1: all, 0: up to age 30, 1: from age 30
+USE_AVERAGED_FEATURES = True
 
 if len(sys.argv) > 2:
     CAF_DOSE = sys.argv[2]
@@ -48,11 +49,12 @@ elif AGE_GROUP == 1:
 elif AGE_GROUP != -1:
     raise Exception(f"Unknown age group {AGE_GROUP}")
 
-with open(os.path.join(DATA_PATH, f"data_avg{age_suffix}.pickle"), "rb") as file:
+feature_suffix = "_avg" if USE_AVERAGED_FEATURES else ""
+with open(os.path.join(DATA_PATH, f"data{feature_suffix}{age_suffix}.pickle"), "rb") as file:
     data = pickle.load(file)
-with open(os.path.join(DATA_PATH, f"labels_avg{age_suffix}.pickle"), "rb") as file:
+with open(os.path.join(DATA_PATH, f"labels{feature_suffix}{age_suffix}.pickle"), "rb") as file:
     labels = pickle.load(file)
-with open(os.path.join(DATA_PATH, f"groups_avg{age_suffix}.pickle"), "rb") as file:
+with open(os.path.join(DATA_PATH, f"groups{feature_suffix}{age_suffix}.pickle"), "rb") as file:
     groups = pickle.load(file)
 
 
