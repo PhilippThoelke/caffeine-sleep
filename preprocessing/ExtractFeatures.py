@@ -12,6 +12,7 @@ from EEGProcessing import (
     sample_entropy,
     spectral_entropy,
     hurst_exponent,
+    hurst_exponent_antropy,
     fooof_1_over_f,
     zero_one_chaos,
     compute_avalanches,
@@ -39,6 +40,8 @@ specShanEn = False
 specPermEn = False
 specSampEn = False
 hurstExp = False
+hurstExpFiltered = True
+hurstExpAntropy = True
 oneOverF = False
 zeroOneChaos = False
 avalanche = True
@@ -68,7 +71,8 @@ while len(subject_ids) > len(done_subjects):
     psd_done = False
     shanEn_done, permEn_done, sampEn_done = [False] * 3
     specShanEn_done, specPermEn_done, specSampEn_done = [False] * 3
-    hurstExp_done, oneOverF_done, zeroOneChaos_done = False, False, False
+    hurstExp_done, hurstExpFiltered_done, hurstExpAntropy_done = False, False, False
+    oneOverF_done, zeroOneChaos_done = False, False
     avalanche_done = False
     lziv_done = False
 
@@ -168,6 +172,18 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("HurstExp", subject_path)
+        if hurstExpFiltered:
+            if "HurstExpFiltered" in features:
+                hurstExpFiltered_done = True
+            else:
+                finished = False
+                create_folder("HurstExpFiltered", subject_path)
+        if hurstExpAntropy:
+            if "HurstExpAntropy" in features:
+                hurstExpAntropy_done = True
+            else:
+                finished = False
+                create_folder("HurstExpAntropy", subject_path)
         if oneOverF:
             if "OneOverF" in features:
                 oneOverF_done = True
@@ -301,6 +317,22 @@ while len(subject_ids) > len(done_subjects):
         for key, stage in stages.items():
             feature[key] = hurst_exponent(stage)
         save_feature_dict("HurstExp", subject_path, feature)
+        print("done")
+
+    if hurstExpFiltered and not hurstExpFiltered_done:
+        feature = {}
+        print("Computing band pass filtered hurst exponent...", end="", flush=True)
+        for key, stage in stages.items():
+            feature[key] = hurst_exponent(stage, freq_range=[3, 35])
+        save_feature_dict("HurstExpFiltered", subject_path, feature)
+        print("done")
+
+    if hurstExpAntropy and not hurstExpAntropy_done:
+        feature = {}
+        print("Computing antropy hurst exponent...", end="", flush=True)
+        for key, stage in stages.items():
+            feature[key] = hurst_exponent_antropy(stage)
+        save_feature_dict("HurstExpAntropy", subject_path, feature)
         print("done")
 
     if oneOverF and not oneOverF_done:

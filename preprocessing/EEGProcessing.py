@@ -5,7 +5,8 @@ from scipy import signal, stats
 from neurokit2.complexity import complexity_hurst
 from fooof import FOOOF
 from avalanche import detect_avalanches, branching_ratio
-from antropy import lziv_complexity
+from antropy import lziv_complexity, detrended_fluctuation
+from mne.filter import filter_data
 from joblib import Parallel, delayed
 
 
@@ -396,7 +397,7 @@ def spectral_entropy(stage, method="shannon"):
     return spec_entropy
 
 
-def hurst_exponent(stage):
+def hurst_exponent(stage, frequency=256, freq_range=None):
     """
     Computes the Hurst exponent for one sleep stage with Anis-Lloyd-Peters correction.
 
@@ -406,6 +407,15 @@ def hurst_exponent(stage):
     Returns:
         hurst exponent for each individual time series (electrodes x epochs)
     """
+    if freq_range is not None:
+        # band pass EEG data
+        stage = filter_data(
+            stage.transpose((0, 2, 1)).astype(float),
+            frequency,
+            freq_range[0],
+            freq_range[1],
+        ).transpose(0, 2, 1)
+
     hurst = np.empty((stage.shape[0], stage.shape[2]))
     for elec in range(stage.shape[0]):
         result = Parallel(n_jobs=-1)(
@@ -413,6 +423,16 @@ def hurst_exponent(stage):
             for epoch in range(stage.shape[2])
         )
         hurst[elec] = [r[0] for r in result]
+    return hurst
+
+
+def hurst_exponent_antropy(stage):
+    hurst = np.empty((stage.shape[0], stage.shape[2]))
+    for elec in range(stage.shape[0]):
+        hurst[elec] = Parallel(n_jobs=-1)(
+            delayed(detrended_fluctuation)(stage[elec, :, epoch])
+            for epoch in range(stage.shape[2])
+        )
     return hurst
 
 
