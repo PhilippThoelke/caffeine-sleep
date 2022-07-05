@@ -120,7 +120,7 @@ for stage in STAGES:
         print()
 
 path = os.path.join(
-    RESULTS_PATH, f"singleML{CAF_DOSE}", f"scores_{CLASSIFIER}{age_suffix}.pickle"
+    RESULTS_PATH, f"singleML{CAF_DOSE}", f"scores_{CLASSIFIER}{feature_suffix}{age_suffix}.pickle"
 )
 with open(path, "wb",) as file:
     pickle.dump(scores, file)
