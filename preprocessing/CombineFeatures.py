@@ -278,6 +278,7 @@ if __name__ == "__main__":
     get_feature(data, "OneOverF")
     get_feature(data, "ZeroOneChaos")
     get_feature(data, "LZiv")
+    get_feature(data, "AvalancheBranRat")
 
     print("-------------------- Averaging features --------------------")
 
