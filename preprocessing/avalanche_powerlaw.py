@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pickle
 from joblib import Parallel, delayed
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from avalanche import fit_powerlaw, fit_third_exponent
 
 
