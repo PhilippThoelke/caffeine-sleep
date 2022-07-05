@@ -15,6 +15,7 @@ from EEGProcessing import (
     fooof_1_over_f,
     zero_one_chaos,
     compute_avalanches,
+    compute_lziv
 )
 
 # caffeine dose: 200 or 400
@@ -40,7 +41,8 @@ specSampEn = False
 hurstExp = False
 oneOverF = False
 zeroOneChaos = False
-avalanche = True
+avalanche = False
+lziv = True
 
 
 def save_feature_dict(name, folder_path, feature_dict):
@@ -66,12 +68,9 @@ while len(subject_ids) > len(done_subjects):
     psd_done = False
     shanEn_done, permEn_done, sampEn_done = [False] * 3
     specShanEn_done, specPermEn_done, specSampEn_done = [False] * 3
-    hurstExp_done, oneOverF_done, zeroOneChaos_done, avalanche_done = (
-        False,
-        False,
-        False,
-        False,
-    )
+    hurstExp_done, oneOverF_done, zeroOneChaos_done = False, False, False
+    avalanche_done = False
+    lziv_done = False
 
     subject_id = subject_ids.iloc[0]
     i = 1
@@ -111,6 +110,8 @@ while len(subject_ids) > len(done_subjects):
             create_folder("ZeroOneChaos", subject_path)
         if avalanche:
             create_folder("Avalanche", subject_path)
+        if lziv:
+            create_folder("LZiv", subject_path)
         print("done")
     else:
         features = [
@@ -184,6 +185,12 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("Avalanche", subject_path)
+        if lziv:
+            if "LZiv" in features:
+                lziv_done = True
+            else:
+                finished = False
+                create_folder("LZiv", subject_path)
 
         if finished:
             print("Features already computed, moving on.")
@@ -316,4 +323,12 @@ while len(subject_ids) > len(done_subjects):
         for key, stage in stages.items():
             feature[key] = compute_avalanches(stage)
         save_feature_dict("Avalanche", subject_path, feature)
+        print("done")
+
+    if lziv and not lziv_done:
+        feature = {}
+        print("Computing Lempel-Ziv complexity...", end="", flush=True)
+        for key, stage in stages.items():
+            feature[key] = compute_lziv(stage)
+        save_feature_dict("LZiv", subject_path, feature)
         print("done")

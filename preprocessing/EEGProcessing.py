@@ -4,7 +4,8 @@ import numpy as np
 from scipy import signal, stats
 from neurokit2.complexity import complexity_hurst
 from fooof import FOOOF
-from avalanche import detect_avalanches, fit_powerlaw
+from avalanche import detect_avalanches
+from antropy import lziv_complexity
 from joblib import Parallel, delayed
 
 
@@ -519,3 +520,18 @@ def compute_avalanches(stage, frequency=256):
         [result[i][0] for i in range(len(result)) if len(result[i]) > 0], []
     )
     return avalanches
+
+
+def _compute_lziv(epoch):
+    return lziv_complexity((epoch > np.median(epoch)).astype(int), normalize=True)
+
+
+def compute_lziv(stage):
+    lziv = np.empty((stage.shape[0], stage.shape[2]))
+    for channel in range(stage.shape[0]):
+        result = Parallel(n_jobs=-1)(
+            delayed(_compute_lziv)(stage[channel, :, epoch])
+            for epoch in range(stage.shape[2])
+        )
+        lziv[channel] = result
+    return lziv
