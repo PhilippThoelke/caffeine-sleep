@@ -15,7 +15,7 @@ from EEGProcessing import (
     fooof_1_over_f,
     zero_one_chaos,
     compute_avalanches,
-    compute_lziv
+    compute_lziv,
 )
 
 # caffeine dose: 200 or 400
@@ -41,8 +41,8 @@ specSampEn = False
 hurstExp = False
 oneOverF = False
 zeroOneChaos = False
-avalanche = False
-lziv = True
+avalanche = True
+lziv = False
 
 
 def save_feature_dict(name, folder_path, feature_dict):
@@ -110,6 +110,7 @@ while len(subject_ids) > len(done_subjects):
             create_folder("ZeroOneChaos", subject_path)
         if avalanche:
             create_folder("Avalanche", subject_path)
+            create_folder("AvalancheBranRat", subject_path)
         if lziv:
             create_folder("LZiv", subject_path)
         print("done")
@@ -185,6 +186,7 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("Avalanche", subject_path)
+                create_folder("AvalancheBranRat", subject_path)
         if lziv:
             if "LZiv" in features:
                 lziv_done = True
@@ -319,10 +321,12 @@ while len(subject_ids) > len(done_subjects):
 
     if avalanche and not avalanche_done:
         feature = {}
+        feature_bran_rat = {}
         print("Computing avalanches...", end="", flush=True)
         for key, stage in stages.items():
-            feature[key] = compute_avalanches(stage)
+            feature[key], feature_bran_rat[key] = compute_avalanches(stage)
         save_feature_dict("Avalanche", subject_path, feature)
+        save_feature_dict("AvalancheBranRat", subject_path, feature_bran_rat)
         print("done")
 
     if lziv and not lziv_done:

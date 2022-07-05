@@ -4,7 +4,7 @@ import numpy as np
 from scipy import signal, stats
 from neurokit2.complexity import complexity_hurst
 from fooof import FOOOF
-from avalanche import detect_avalanches
+from avalanche import detect_avalanches, branching_ratio
 from antropy import lziv_complexity
 from joblib import Parallel, delayed
 
@@ -519,7 +519,14 @@ def compute_avalanches(stage, frequency=256):
     avalanches = sum(
         [result[i][0] for i in range(len(result)) if len(result[i]) > 0], []
     )
-    return avalanches
+    # compute branching ratio
+    bran_rat = np.array(
+        [
+            [branching_ratio(result[i][1][ch], 5, 256) for i in range(len(result))]
+            for ch in range(stage.shape[0])
+        ]
+    )
+    return avalanches, bran_rat
 
 
 def _compute_lziv(epoch):
