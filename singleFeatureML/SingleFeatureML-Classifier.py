@@ -100,6 +100,8 @@ for stage in STAGES:
             )
 
             x = data[stage][feature][:, electrode].reshape((-1, 1))
+            x[np.isnan(x)] = 0
+
             y = labels[stage]
             g = groups[stage]
             print(f", permutation test on {len(x)} samples", end="")
