@@ -70,6 +70,8 @@ x = []
 for feature in data.keys():
     x.append(data[feature])
 x = np.concatenate(x, axis=1)
+# replace NaNs by 0
+x[np.isnan(x)] = 0
 
 print(f"Found {len(x)} samples")
 
