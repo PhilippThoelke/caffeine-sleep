@@ -542,7 +542,14 @@ def compute_avalanches(stage, frequency=256):
     # compute branching ratio
     bran_rat = np.array(
         [
-            [branching_ratio(result[i][1][ch], 5, 256) for i in range(len(result))]
+            [
+                (
+                    branching_ratio(result[i][1][ch], 5, 256)
+                    if len(result[i]) > 0
+                    else float("nan")
+                )
+                for i in range(len(result))
+            ]
             for ch in range(stage.shape[0])
         ]
     )
