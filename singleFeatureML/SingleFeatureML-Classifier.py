@@ -31,11 +31,10 @@ CLASSIFIERS = [
 ]
 
 DATA_PATH = f"data/Features{CAF_DOSE}/Combined"
-RESULTS_PATH = "results"
+RESULTS_PATH = f"results/singleML{CAF_DOSE}"
 
 STAGES = ["AWSL", "NREM", "REM"]
 BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
-
 
 assert os.path.exists(RESULTS_PATH), "Please make sure the results path exists."
 
@@ -109,9 +108,7 @@ def main():
                 scores[stage][feature].append(score)
             print()
 
-    path = os.path.join(
-        RESULTS_PATH, f"singleML{CAF_DOSE}", f"scores_{CLASSIFIER}.pickle"
-    )
+    path = os.path.join(RESULTS_PATH, f"scores_{CLASSIFIER}.pickle")
     with open(path, "wb",) as file:
         pickle.dump(scores, file)
 
