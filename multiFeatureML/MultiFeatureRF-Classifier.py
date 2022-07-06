@@ -22,10 +22,12 @@ if len(sys.argv) > 2:
     STAGE_INDEX = int(sys.argv[2])
 
 DATA_PATH = f"data/Features{CAF_DOSE}/Combined"
-RESULTS_PATH = f"results/randomForest_avg{CAF_DOSE}"
+RESULTS_PATH = f"results/multiML{CAF_DOSE}"
 
 STAGES = ["AWSL", "NREM", "REM"]
 STAGE = STAGES[STAGE_INDEX]
+
+assert os.path.exists(RESULTS_PATH), "Please make sure the results path exists."
 
 # load data
 with open(os.path.join(DATA_PATH, "data_avg.pickle"), "rb") as file:
