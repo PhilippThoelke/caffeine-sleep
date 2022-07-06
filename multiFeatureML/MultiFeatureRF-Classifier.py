@@ -28,10 +28,12 @@ if len(sys.argv) > 3:
     AGE_GROUP = int(sys.argv[3])
 
 DATA_PATH = f"data/Features{CAF_DOSE}/Combined"
-RESULTS_PATH = f"results/randomForest_avg{CAF_DOSE}"
+RESULTS_PATH = f"results/multiML{CAF_DOSE}"
 
 STAGES = ["AWSL", "NREM", "REM"]
 STAGE = STAGES[STAGE_INDEX]
+
+assert os.path.exists(RESULTS_PATH), "Please make sure the results path exists."
 
 # get age suffix for loading the data depending on age group parameter
 age_suffix = ""
