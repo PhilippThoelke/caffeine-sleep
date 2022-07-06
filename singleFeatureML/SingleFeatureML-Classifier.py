@@ -37,6 +37,9 @@ STAGES = ["AWSL", "NREM", "REM"]
 BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
 
 
+assert os.path.exists(RESULTS_PATH), "Please make sure the results path exists."
+
+
 def get_classifier(name, **kwargs):
     if name.lower() == "svm":
         return svm.SVC(gamma="auto", **kwargs)
