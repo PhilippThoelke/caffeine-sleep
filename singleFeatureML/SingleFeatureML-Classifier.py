@@ -124,9 +124,10 @@ for stage in STAGES:
                     cv=kfold.split(X=x, y=y, groups=g),
                     n_jobs=-1,
                 )
+                print(f", score: {score[0]}, pvalue: {score[2]}")
             except ValueError as e:
                 print(f", ERROR: {e}")
-            print(f", score: {score[0]}, pvalue: {score[2]}")
+                score = [float("nan"), None, float("nan")]
             scores[stage][feature].append(score)
         print()
 
