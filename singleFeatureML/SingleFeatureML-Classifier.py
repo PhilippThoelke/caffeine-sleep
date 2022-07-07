@@ -50,11 +50,17 @@ elif AGE_GROUP != -1:
     raise Exception(f"Unknown age group {AGE_GROUP}")
 
 feature_suffix = "_avg" if USE_AVERAGED_FEATURES else ""
-with open(os.path.join(DATA_PATH, f"data{feature_suffix}{age_suffix}.pickle"), "rb") as file:
+with open(
+    os.path.join(DATA_PATH, f"data{feature_suffix}{age_suffix}.pickle"), "rb"
+) as file:
     data = pickle.load(file)
-with open(os.path.join(DATA_PATH, f"labels{feature_suffix}{age_suffix}.pickle"), "rb") as file:
+with open(
+    os.path.join(DATA_PATH, f"labels{feature_suffix}{age_suffix}.pickle"), "rb"
+) as file:
     labels = pickle.load(file)
-with open(os.path.join(DATA_PATH, f"groups{feature_suffix}{age_suffix}.pickle"), "rb") as file:
+with open(
+    os.path.join(DATA_PATH, f"groups{feature_suffix}{age_suffix}.pickle"), "rb"
+) as file:
     groups = pickle.load(file)
 
 
@@ -108,23 +114,31 @@ for stage in STAGES:
 
             # train classifier
             kfold = model_selection.GroupKFold(n_splits=10)
-            score = model_selection.permutation_test_score(
-                estimator=get_classifier(CLASSIFIER),
-                n_permutations=1000,
-                X=x,
-                y=y,
-                groups=g,
-                cv=kfold.split(X=x, y=y, groups=g),
-                n_jobs=-1,
-            )
+            try:
+                score = model_selection.permutation_test_score(
+                    estimator=get_classifier(CLASSIFIER),
+                    n_permutations=1000,
+                    X=x,
+                    y=y,
+                    groups=g,
+                    cv=kfold.split(X=x, y=y, groups=g),
+                    n_jobs=-1,
+                )
+            except ValueError as e:
+                print(f", ERROR: {e}")
             print(f", score: {score[0]}, pvalue: {score[2]}")
             scores[stage][feature].append(score)
         print()
 
 path = os.path.join(
-    RESULTS_PATH, f"singleML{CAF_DOSE}", f"scores_{CLASSIFIER}{feature_suffix}{age_suffix}.pickle"
+    RESULTS_PATH,
+    f"singleML{CAF_DOSE}",
+    f"scores_{CLASSIFIER}{feature_suffix}{age_suffix}.pickle",
 )
-with open(path, "wb",) as file:
+with open(
+    path,
+    "wb",
+) as file:
     pickle.dump(scores, file)
 
 all_scores = [
