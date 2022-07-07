@@ -2,6 +2,7 @@ import os
 import sys
 import pickle
 import numpy as np
+from tqdm import trange
 from joblib import Parallel, delayed
 from sklearn import model_selection, ensemble
 
@@ -120,7 +121,7 @@ def train(train, test):
 # perform grid search and training n times
 perm = np.random.permutation(len(cv_split))
 results = Parallel(n_jobs=-1)(
-    delayed(train)(*cv_split[perm[i]]) for i in range(ITERATIONS)
+    delayed(train)(*cv_split[perm[i]]) for i in trange(ITERATIONS)
 )
 
 # extract importances and accuracies for the n random forests
