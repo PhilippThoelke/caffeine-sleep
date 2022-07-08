@@ -24,7 +24,7 @@ BALANCE_EPOCHS = False
 # if true, leave the features raw and don't apply a z-transform
 NORMALIZE_FEATURES = True
 # percentage of subjects to ignore when balancing (removes subjects with lowest number of sleep epochs)
-DROP_SUBJECTS_PCT = 10
+DROP_SUBJECTS_PCT = 0
 
 if BALANCE_EPOCHS:
     RESULT_PATH = RESULT_PATH + "_balanced"
