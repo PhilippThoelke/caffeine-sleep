@@ -18,11 +18,8 @@ SIGNIFICANT_P = 0.05
 AGE_GROUP = -1  # -1: all, 0: up to age 30, 1: from age 30
 USE_AVERAGED_FEATURES = True
 
-if len(sys.argv) > 2:
-    CAF_DOSE = sys.argv[2]
-
-if len(sys.argv) > 3:
-    AGE_GROUP = int(sys.argv[3])
+DATA_PATH = f"data/Features{CAF_DOSE}/Combined"
+RESULTS_PATH = f"results/singleML{CAF_DOSE}"
 
 CLASSIFIERS = [
     "SVM",
@@ -35,36 +32,21 @@ CLASSIFIERS = [
     "GaussianProcess",
 ]
 
-DATA_PATH = f"data/Features{CAF_DOSE}/Combined"
-RESULTS_PATH = f"results/singleML{CAF_DOSE}"
+# read command line arguments
+# argument 1: classifier id (see above list of classifiers)
+if len(sys.argv) > 1:
+    CLASSIFIER = CLASSIFIERS[int(sys.argv[1])]
+
+# argument 2: caffeine dose (200 or 400)
+if len(sys.argv) > 2:
+    CAF_DOSE = sys.argv[2]
+
+# argument 3: age group (-1, 0 or 1)
+if len(sys.argv) > 3:
+    AGE_GROUP = int(sys.argv[3])
 
 STAGES = ["AWSL", "NREM", "REM"]
 BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
-
-# get age suffix for loading the data depending on age group parameter
-age_suffix = ""
-if AGE_GROUP == 0:
-    age_suffix = "_age_t30"
-elif AGE_GROUP == 1:
-    age_suffix = "_age_f30"
-elif AGE_GROUP != -1:
-    raise Exception(f"Unknown age group {AGE_GROUP}")
-
-feature_suffix = "_avg" if USE_AVERAGED_FEATURES else ""
-with open(
-    os.path.join(DATA_PATH, f"data{feature_suffix}{age_suffix}.pickle"), "rb"
-) as file:
-    data = pickle.load(file)
-with open(
-    os.path.join(DATA_PATH, f"labels{feature_suffix}{age_suffix}.pickle"), "rb"
-) as file:
-    labels = pickle.load(file)
-with open(
-    os.path.join(DATA_PATH, f"groups{feature_suffix}{age_suffix}.pickle"), "rb"
-) as file:
-    groups = pickle.load(file)
-
-assert os.path.exists(RESULTS_PATH), "Please make sure the results path exists."
 
 
 def get_classifier(name, **kwargs):
@@ -87,19 +69,35 @@ def get_classifier(name, **kwargs):
 
 
 def main():
-    with open(os.path.join(DATA_PATH, "data_avg.pickle"), "rb") as file:
+    # get age suffix for loading the data depending on age group parameter
+    age_suffix = ""
+    if AGE_GROUP == 0:
+        age_suffix = "_age_t30"
+    elif AGE_GROUP == 1:
+        age_suffix = "_age_f30"
+    elif AGE_GROUP != -1:
+        raise Exception(f"Unknown age group {AGE_GROUP}")
+
+    feature_suffix = "_avg" if USE_AVERAGED_FEATURES else ""
+    with open(
+        os.path.join(DATA_PATH, f"data{feature_suffix}{age_suffix}.pickle"), "rb"
+    ) as file:
         data = pickle.load(file)
-    with open(os.path.join(DATA_PATH, "labels_avg.pickle"), "rb") as file:
+    with open(
+        os.path.join(DATA_PATH, f"labels{feature_suffix}{age_suffix}.pickle"), "rb"
+    ) as file:
         labels = pickle.load(file)
-    with open(os.path.join(DATA_PATH, "groups_avg.pickle"), "rb") as file:
+    with open(
+        os.path.join(DATA_PATH, f"groups{feature_suffix}{age_suffix}.pickle"), "rb"
+    ) as file:
         groups = pickle.load(file)
+
+    assert os.path.exists(RESULTS_PATH), "Please make sure the results path exists."
 
     assert len(sys.argv) > 1, (
         f"please provide the index of the classifier to train as a command line argument: "
         f"{dict(zip(range(len(CLASSIFIERS)),CLASSIFIERS))}"
     )
-    clf_id = int(sys.argv[1])
-    CLASSIFIER = CLASSIFIERS[clf_id]
 
     print(f"Decoding accuracy average, {CLASSIFIER} on CAF {CAF_DOSE}")
 
