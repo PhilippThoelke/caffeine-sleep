@@ -14,7 +14,7 @@ ITERATIONS = 1000
 # sleep stage index (can be overwritten using command line arguments)
 STAGE_INDEX = 0
 # -1: all, 0: up to age 30, 1: from age 30 (can be overwritten using command line arguments)
-AGE_GROUP = -1
+AGE_GROUP = 0
 
 # allow to set the caffeine dose with a command line argument
 if len(sys.argv) > 1:
@@ -31,7 +31,7 @@ if len(sys.argv) > 3:
 DATA_PATH = f"data/Features{CAF_DOSE}/Combined"
 RESULTS_PATH = f"results/multiML{CAF_DOSE}"
 
-STAGES = ["AWSL", "NREM", "REM"]
+STAGES = ["NREM", "REM"]
 STAGE = STAGES[STAGE_INDEX]
 
 assert os.path.exists(RESULTS_PATH), "Please make sure the results path exists."

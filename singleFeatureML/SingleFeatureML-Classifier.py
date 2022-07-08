@@ -45,7 +45,7 @@ if len(sys.argv) > 2:
 if len(sys.argv) > 3:
     AGE_GROUP = int(sys.argv[3])
 
-STAGES = ["AWSL", "NREM", "REM"]
+STAGES = ["NREM", "REM"]
 BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
 
 
