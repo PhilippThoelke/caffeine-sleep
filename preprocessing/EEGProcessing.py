@@ -426,7 +426,7 @@ def hurst_exponent(stage, frequency=256, freq_range=None):
     return hurst
 
 
-def hurst_exponent_antropy(stage):
+def compute_dfa(stage):
     hurst = np.empty((stage.shape[0], stage.shape[2]))
     for elec in range(stage.shape[0]):
         hurst[elec] = Parallel(n_jobs=-1)(
