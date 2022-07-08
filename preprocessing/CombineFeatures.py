@@ -272,15 +272,9 @@ if __name__ == "__main__":
     get_feature(data, "SpecShanEn")
     get_feature(data, "SampEn")
     get_feature(data, "SpecSampEn")
-    get_feature(data, "PermEn")
-    get_feature(data, "SpecPermEn")
-    get_feature(data, "HurstExp")
-    get_feature(data, "HurstExpFiltered")
-    get_feature(data, "HurstExpAntropy")
+    get_feature(data, "DFA")
     get_feature(data, "OneOverF")
-    get_feature(data, "ZeroOneChaos")
     get_feature(data, "LZiv")
-    get_feature(data, "AvalancheBranRat")
 
     print("-------------------- Averaging features --------------------")
 

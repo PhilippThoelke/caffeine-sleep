@@ -2,11 +2,8 @@ import os
 import glob
 import numpy as np
 from scipy import signal, stats
-from neurokit2.complexity import complexity_hurst
 from fooof import FOOOF
-from avalanche import detect_avalanches, branching_ratio
 from antropy import lziv_complexity, detrended_fluctuation
-from mne.filter import filter_data
 from joblib import Parallel, delayed
 
 
@@ -178,7 +175,6 @@ def power_spectral_density(stage, bands=True, relative=False):
             else:
                 # add amplitude array as the third dimension
                 psd[-1][-1] = amp
-
     return np.array(psd)
 
 
@@ -201,45 +197,6 @@ def shannon_entropy(signal, normalize=True):
     if normalize:
         # normalize entropy to range between 0 and 1
         entropy /= np.log(len(signal))
-    return entropy
-
-
-def permutation_entropy(signal, order=3, delay=1, normalize=True):
-    """
-    Computes the permutation entropy for a single epoch.
-
-    Args:
-        signal: vector containing the signal over which the entropy is computed
-        order: permutation window length
-        delay: step between the permutation windows
-        normalize: boolean indicating if the entropy value should be normalized to the range between 0 and 1
-
-    returns:
-        permutation entropy as float
-    """
-    window_count = len(signal) - (order - 1) * delay
-    # partition the signal into windows of length order with step size delay
-    windows = np.array(
-        [signal[i * delay : i * delay + window_count] for i in range(order)]
-    ).T
-
-    # calculate element ranks for each window in ascending order
-    # same values become distinct ranks corresponding to the order of appearance
-    # e.g. window [4, 6, 1] becomes [1, 2, 0]
-    ranks = np.array(
-        [stats.rankdata(window, method="ordinal") - 1 for window in windows]
-    )
-    # get relative frequency of each unique rank in the data
-    rel_permutation_counts = (
-        np.unique(ranks, axis=0, return_counts=True)[1] / ranks.shape[0]
-    )
-
-    # calculate permutation entropy
-    entropy = -np.sum([perm * np.log2(perm) for perm in rel_permutation_counts])
-
-    if normalize:
-        # normalize entropy to range between 0 and 1
-        entropy /= np.log2(np.math.factorial(order))
     return entropy
 
 
@@ -317,47 +274,6 @@ def _distance(x1, x2):
     return np.max(np.abs(x1 - x2))
 
 
-def sample_entropy_slow(signal, dimension=2, tolerance=0.2):
-    """
-    Computes the sample entropy for a single epoch.
-
-    Args:
-        signal: vector containing the signal over which the entropy is computed
-        dimension: length of the templates which are used during calculation
-        tolerance: the maximum distance between two windows to allow a match
-
-    Returns:
-        sample entropy as float
-    """
-    tolerance = tolerance * np.std(signal)
-
-    # generate windows with length dimension + 1 over the signal
-    embeddings = np.array(
-        [signal[i : i + dimension + 1] for i in range(len(signal) - dimension)]
-    )
-    # compute number of matches for windows with size dimension and size dimension + 1
-    matches = np.sum(
-        [
-            np.sum(
-                [
-                    [
-                        _distance(template[:-1], embedding[:-1]) <= tolerance,
-                        _distance(template, embedding) <= tolerance,
-                    ]
-                    for j, embedding in enumerate(embeddings)
-                    if i != j
-                ],
-                axis=0,
-            )
-            for i, template in enumerate(embeddings)
-        ],
-        axis=0,
-    )
-
-    # return negative ln of # matches for size dimension + 1 divided by # matches for size dimension
-    return -np.log(matches[1] / matches[0])
-
-
 def spectral_entropy(stage, method="shannon"):
     """
     Computes the spectral entropy for one sleep stage using the specified entropy method (permutation or shannon).
@@ -383,11 +299,6 @@ def spectral_entropy(stage, method="shannon"):
                 spec_entropy[electrode, epoch] = shannon_entropy(
                     psd[electrode, epoch], normalize=True
                 )
-            elif method.lower() == "permutation":
-                # get PSD permutation entropy for the current electrode and epoch
-                spec_entropy[electrode, epoch] = permutation_entropy(
-                    psd[electrode, epoch], normalize=True
-                )
             elif method.lower() == "sample":
                 # get PSD sample entropy for the current electrode and epoch
                 spec_entropy[electrode, epoch] = sample_entropy(psd[electrode, epoch])
@@ -397,36 +308,16 @@ def spectral_entropy(stage, method="shannon"):
     return spec_entropy
 
 
-def hurst_exponent(stage, frequency=256, freq_range=None):
+def compute_dfa(stage):
     """
-    Computes the Hurst exponent for one sleep stage with Anis-Lloyd-Peters correction.
+    Compute DFA slope exponent.
 
     Args:
         stage: raw EEG data (electrodes x epoch steps x epochs)
 
     Returns:
-        hurst exponent for each individual time series (electrodes x epochs)
+        alpha exponent from DFA of the EEG (electrodes x epochs)
     """
-    if freq_range is not None:
-        # band pass EEG data
-        stage = filter_data(
-            stage.transpose((0, 2, 1)).astype(float),
-            frequency,
-            freq_range[0],
-            freq_range[1],
-        ).transpose(0, 2, 1)
-
-    hurst = np.empty((stage.shape[0], stage.shape[2]))
-    for elec in range(stage.shape[0]):
-        result = Parallel(n_jobs=-1)(
-            delayed(complexity_hurst)(stage[elec, :, epoch])
-            for epoch in range(stage.shape[2])
-        )
-        hurst[elec] = [r[0] for r in result]
-    return hurst
-
-
-def compute_dfa(stage):
     hurst = np.empty((stage.shape[0], stage.shape[2]))
     for elec in range(stage.shape[0]):
         hurst[elec] = Parallel(n_jobs=-1)(
@@ -465,102 +356,20 @@ def fooof_1_over_f(stage, frequency=256, freq_range=[3, 35]):
     return oof
 
 
-def _z1_chaos_test(x, sigma=1, rand_seed=0):
-    np.random.seed(rand_seed)
-    N = len(x)
-    a = np.arange(N)
-    t = np.arange(int(round(N / 10)))
-    M = np.zeros(int(round(N / 10)))
-    # Choose a coefficient c within the interval pi/5 to 3pi/5 to avoid
-    # resonances. Do this 100 times.
-    c = np.pi / 5 + np.random.random_sample(100) * 3 * np.pi / 5
-    k_corr = np.zeros(100)
-
-    for i in range(100):
-        # Create a 2-d system driven by the data
-        p = np.cumsum(x * np.cos(a * c[i]))
-        q = np.cumsum(x * np.sin(a * c[i]))
-
-        for n in range(int(round(N / 10))):
-            # Calculate the (time-averaged) mean-square displacement,
-            # subtracting a correction term (Gottwald & Melbourne, 2009)
-            # and adding a noise term scaled by sigma (Dawes & Freeland, 2008)
-            M[n] = (
-                np.mean(
-                    (p[n + 1 :] - p[: -n - 1]) ** 2 + (q[n + 1 :] - q[: -n - 1]) ** 2
-                )
-                - np.mean(x) ** 2 * (1 - np.cos(n * c[i])) / (1 - np.cos(c[i]))
-                + sigma * (np.random.random() - 0.5)
-            )
-
-        k_corr[i], _ = stats.pearsonr(t, M)
-
-    return np.median(k_corr)
-
-
-def zero_one_chaos(stage):
-    """
-    Compute the 0-1 chaos test.
-
-    Args:
-        stage: raw EEG data (electrodes x epoch steps x epochs)
-
-    Returns:
-        0-1 chaos test of the EEG (electrodes x epochs)
-    """
-    zo = np.empty((stage.shape[0], stage.shape[2]))
-    for elec in range(stage.shape[0]):
-        zo[elec] = Parallel(n_jobs=-1)(
-            delayed(_z1_chaos_test)(stage[elec, :, epoch])
-            for epoch in range(stage.shape[2])
-        )
-    return zo
-
-
-def avalanche_wrapper(x, frequency, max_iei, threshold):
-    try:
-        return detect_avalanches(x, frequency, max_iei=max_iei, threshold=threshold)
-    except TypeError:
-        return []
-
-
-def compute_avalanches(stage, frequency=256):
-    # channel-wise z-transform
-    stage = (stage - stage.mean(axis=(1, 2), keepdims=True)) / stage.std(
-        axis=(1, 2), keepdims=True
-    )
-    # detect avalanches
-    result = Parallel(n_jobs=-1)(
-        delayed(avalanche_wrapper)(
-            stage[:, :, epoch], frequency, max_iei=0.024, threshold=2
-        )
-        for epoch in range(stage.shape[2])
-    )
-    avalanches = sum(
-        [result[i][0] for i in range(len(result)) if len(result[i]) > 0], []
-    )
-    # compute branching ratio
-    bran_rat = np.array(
-        [
-            [
-                (
-                    branching_ratio(result[i][1][ch], 5, 256)
-                    if len(result[i]) > 0
-                    else float("nan")
-                )
-                for i in range(len(result))
-            ]
-            for ch in range(stage.shape[0])
-        ]
-    )
-    return avalanches, bran_rat
-
-
 def _compute_lziv(epoch):
     return lziv_complexity((epoch > np.median(epoch)).astype(int), normalize=True)
 
 
 def compute_lziv(stage):
+    """
+    Computes the Lempel-Ziv complexity.
+
+    Args:
+        stage: raw EEG data (electrodes x epoch steps x epochs)
+
+    Returns:
+        Lempel-Ziv complexity of the EEG (electrodes x epochs)
+    """
     lziv = np.empty((stage.shape[0], stage.shape[2]))
     for channel in range(stage.shape[0]):
         result = Parallel(n_jobs=-1)(

@@ -7,15 +7,10 @@ from EEGProcessing import (
     extract_sleep_stages,
     load_pre_split_data,
     power_spectral_density,
-    shannon_entropy,
-    permutation_entropy,
     sample_entropy,
     spectral_entropy,
-    hurst_exponent,
     compute_dfa,
     fooof_1_over_f,
-    zero_one_chaos,
-    compute_avalanches,
     compute_lziv,
 )
 
@@ -33,18 +28,11 @@ SPLIT_STAGES = False
 
 # which features to compute
 psd = True
-shanEn = False
-permEn = False
 sampEn = True
 specShanEn = True
-specPermEn = False
 specSampEn = True
-hurstExp = False
-hurstExpFiltered = False
 dfa = True
 oneOverF = True
-zeroOneChaos = False
-avalanche = False
 lziv = True
 
 
@@ -69,11 +57,11 @@ subject_ids = pd.read_csv(SUBJECTS_PATH, index_col=0)["Subject_id"]
 done_subjects = []
 while len(subject_ids) > len(done_subjects):
     psd_done = False
-    shanEn_done, permEn_done, sampEn_done = [False] * 3
-    specShanEn_done, specPermEn_done, specSampEn_done = [False] * 3
-    hurstExp_done, hurstExpFiltered_done, dfa_done = False, False, False
-    oneOverF_done, zeroOneChaos_done = False, False
-    avalanche_done = False
+    sampEn_done = False
+    specShanEn_done = False
+    specSampEn_done = False
+    dfa_done = False
+    oneOverF_done = False
     lziv_done = False
 
     subject_id = subject_ids.iloc[0]
@@ -94,27 +82,16 @@ while len(subject_ids) > len(done_subjects):
         os.mkdir(subject_path)
         if psd:
             create_folder("PSD", subject_path)
-        if shanEn:
-            create_folder("ShanEn", subject_path)
-        if permEn:
-            create_folder("PermEn", subject_path)
         if sampEn:
             create_folder("SampEn", subject_path)
         if specShanEn:
             create_folder("SpecShanEn", subject_path)
-        if specPermEn:
-            create_folder("SpecPermEn", subject_path)
         if specSampEn:
             create_folder("SpecSampEn", subject_path)
-        if hurstExp:
-            create_folder("HurstExp", subject_path)
+        if dfa:
+            create_folder("DFA", subject_path)
         if oneOverF:
             create_folder("OneOverF", subject_path)
-        if zeroOneChaos:
-            create_folder("ZeroOneChaos", subject_path)
-        if avalanche:
-            create_folder("Avalanche", subject_path)
-            create_folder("AvalancheBranRat", subject_path)
         if lziv:
             create_folder("LZiv", subject_path)
         print("done")
@@ -130,18 +107,6 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("PSD", subject_path)
-        if shanEn:
-            if "ShanEn" in features:
-                shanEn_done = True
-            else:
-                finished = False
-                create_folder("ShanEn", subject_path)
-        if permEn:
-            if "PermEn" in features:
-                permEn_done = True
-            else:
-                finished = False
-                create_folder("PermEn", subject_path)
         if sampEn:
             if "SampEn" in features:
                 sampEn_done = True
@@ -154,30 +119,12 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("SpecShanEn", subject_path)
-        if specPermEn:
-            if "SpecPermEn" in features:
-                specPermEn_done = True
-            else:
-                finished = False
-                create_folder("SpecPermEn", subject_path)
         if specSampEn:
             if "SpecSampEn" in features:
                 specSampEn_done = True
             else:
                 finished = False
                 create_folder("SpecSampEn", subject_path)
-        if hurstExp:
-            if "HurstExp" in features:
-                hurstExp_done = True
-            else:
-                finished = False
-                create_folder("HurstExp", subject_path)
-        if hurstExpFiltered:
-            if "HurstExpFiltered" in features:
-                hurstExpFiltered_done = True
-            else:
-                finished = False
-                create_folder("HurstExpFiltered", subject_path)
         if dfa:
             if "DFA" in features:
                 dfa_done = True
@@ -190,19 +137,6 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("OneOverF", subject_path)
-        if zeroOneChaos:
-            if "ZeroOneChaos" in features:
-                zeroOneChaos_done = True
-            else:
-                finished = False
-                create_folder("ZeroOneChaos", subject_path)
-        if avalanche:
-            if "Avalanche" in features:
-                avalanche_done = True
-            else:
-                finished = False
-                create_folder("Avalanche", subject_path)
-                create_folder("AvalancheBranRat", subject_path)
         if lziv:
             if "LZiv" in features:
                 lziv_done = True
@@ -250,32 +184,6 @@ while len(subject_ids) > len(done_subjects):
         save_feature_dict("PSD", subject_path, feature)
         print("done")
 
-    if shanEn and not shanEn_done:
-        feature = {}
-        print("Computing absolute value shannon entropy...", end="", flush=True)
-        for key, stage in stages.items():
-            feature[key] = np.empty((stage.shape[0], stage.shape[2]))
-            for elec in range(stage.shape[0]):
-                for epoch in range(stage.shape[2]):
-                    feature[key][elec, epoch] = shannon_entropy(
-                        np.abs(stage[elec, :, epoch])
-                    )
-        save_feature_dict("ShanEn", subject_path, feature)
-        print("done")
-
-    if permEn and not permEn_done:
-        feature = {}
-        print("Computing permutation entropy...", end="", flush=True)
-        for key, stage in stages.items():
-            feature[key] = np.empty((stage.shape[0], stage.shape[2]))
-            for elec in range(stage.shape[0]):
-                for epoch in range(stage.shape[2]):
-                    feature[key][elec, epoch] = permutation_entropy(
-                        stage[elec, :, epoch]
-                    )
-        save_feature_dict("PermEn", subject_path, feature)
-        print("done")
-
     if sampEn and not sampEn_done:
         feature = {}
         print("Computing sample entropy...", end="", flush=True)
@@ -295,36 +203,12 @@ while len(subject_ids) > len(done_subjects):
         save_feature_dict("SpecShanEn", subject_path, feature)
         print("done")
 
-    if specPermEn and not specPermEn_done:
-        feature = {}
-        print("Computing spectral permutation entropy...", end="", flush=True)
-        for key, stage in stages.items():
-            feature[key] = spectral_entropy(stage, method="permutation")
-        save_feature_dict("SpecPermEn", subject_path, feature)
-        print("done")
-
     if specSampEn and not specSampEn_done:
         feature = {}
         print("Computing spectral sample entropy...", end="", flush=True)
         for key, stage in stages.items():
             feature[key] = spectral_entropy(stage, method="sample")
         save_feature_dict("SpecSampEn", subject_path, feature)
-        print("done")
-
-    if hurstExp and not hurstExp_done:
-        feature = {}
-        print("Computing hurst exponent...", end="", flush=True)
-        for key, stage in stages.items():
-            feature[key] = hurst_exponent(stage)
-        save_feature_dict("HurstExp", subject_path, feature)
-        print("done")
-
-    if hurstExpFiltered and not hurstExpFiltered_done:
-        feature = {}
-        print("Computing band pass filtered hurst exponent...", end="", flush=True)
-        for key, stage in stages.items():
-            feature[key] = hurst_exponent(stage, freq_range=[3, 35])
-        save_feature_dict("HurstExpFiltered", subject_path, feature)
         print("done")
 
     if dfa and not dfa_done:
@@ -341,24 +225,6 @@ while len(subject_ids) > len(done_subjects):
         for key, stage in stages.items():
             feature[key] = fooof_1_over_f(stage)
         save_feature_dict("OneOverF", subject_path, feature)
-        print("done")
-
-    if zeroOneChaos and not zeroOneChaos_done:
-        feature = {}
-        print("Computing 0-1 chaos test...", end="", flush=True)
-        for key, stage in stages.items():
-            feature[key] = zero_one_chaos(stage)
-        save_feature_dict("ZeroOneChaos", subject_path, feature)
-        print("done")
-
-    if avalanche and not avalanche_done:
-        feature = {}
-        feature_bran_rat = {}
-        print("Computing avalanches...", end="", flush=True)
-        for key, stage in stages.items():
-            feature[key], feature_bran_rat[key] = compute_avalanches(stage)
-        save_feature_dict("Avalanche", subject_path, feature)
-        save_feature_dict("AvalancheBranRat", subject_path, feature_bran_rat)
         print("done")
 
     if lziv and not lziv_done:
