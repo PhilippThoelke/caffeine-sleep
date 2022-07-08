@@ -439,7 +439,7 @@ def hurst_exponent_antropy(stage):
 def _compute_1_over_f(f, p, freq_range):
     fm = FOOOF()
     fm.fit(f, p, freq_range=freq_range)
-    return fm.aperiodic_params_[1]
+    return fm.aperiodic_params_[-1]
 
 
 def fooof_1_over_f(stage, frequency=256, freq_range=[3, 35]):
