@@ -53,7 +53,7 @@ def load_labels(caf_dose, subjects_path):
         subjects_path: path to the directory where the subject metadata csv file is stored
 
     Returns:
-        dictionary with subject ids as keys and the label as a value (0: caffeine, 1: placebo)
+        dictionary with subject ids as keys and the label as a value (0: placebo, 1: caffeine)
     """
     # read metadata csv file
     subjects = pd.read_csv(subjects_path, index_col=0)[["Subject_id", "CAF"]]
