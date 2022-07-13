@@ -16,7 +16,7 @@ from sklearn import (
 CAF_DOSE = 200
 SIGNIFICANT_P = 0.05
 AGE_GROUP = -1  # -1: all, 0: up to age 30, 1: from age 30
-USE_AVERAGED_FEATURES = True
+USE_AVERAGED_FEATURES = False
 
 DATA_PATH = f"data/Features{CAF_DOSE}/Combined"
 RESULTS_PATH = f"results/singleML{CAF_DOSE}"
@@ -44,6 +44,9 @@ if len(sys.argv) > 2:
 # argument 3: age group (-1, 0 or 1)
 if len(sys.argv) > 3:
     AGE_GROUP = int(sys.argv[3])
+
+if len(sys.argv) > 4:
+    USE_AVERAGED_FEATURES = bool(int(sys.argv[4]))
 
 STAGES = ["NREM", "REM"]
 BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
@@ -140,7 +143,7 @@ def main():
                 scores[stage][feature].append(score)
             print()
 
-    path = os.path.join(RESULTS_PATH, f"scores_{CLASSIFIER}.pickle")
+    path = os.path.join(RESULTS_PATH, f"scores_{CLASSIFIER}{feature_suffix}{age_suffix}.pickle")
     with open(path, "wb",) as file:
         pickle.dump(scores, file)
 
