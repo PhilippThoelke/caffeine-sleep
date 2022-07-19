@@ -134,6 +134,7 @@ def main():
                         y=y,
                         groups=g,
                         cv=kfold.split(X=x, y=y, groups=g),
+                        scoring=None if USE_AVERAGED_FEATURES else "balanced_accuracy",
                         n_jobs=-1,
                     )
                     print(f", score: {score[0]}, pvalue: {score[2]}")
@@ -143,7 +144,9 @@ def main():
                 scores[stage][feature].append(score)
             print()
 
-    path = os.path.join(RESULTS_PATH, f"scores_{CLASSIFIER}{feature_suffix}{age_suffix}.pickle")
+    path = os.path.join(
+        RESULTS_PATH, f"scores_{CLASSIFIER}{feature_suffix}{age_suffix}.pickle"
+    )
     with open(path, "wb",) as file:
         pickle.dump(scores, file)
 
