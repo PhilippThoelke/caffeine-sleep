@@ -28,12 +28,12 @@ SPLIT_STAGES = False
 
 # which features to compute
 psd = True
-sampEn = True
+sampEn = False
 specShanEn = True
 specSampEn = True
-dfa = True
-oneOverF = True
-lziv = True
+dfa = False
+oneOverF = False
+lziv = False
 
 
 def save_feature_dict(name, folder_path, feature_dict):

@@ -107,7 +107,7 @@ def _extract_frequency_power_bands(freqs, values, relative=False):
         total = 1
 
     return [
-        np.sum(values[(freqs >= 0.3) & (freqs < 4)]) / total,
+        np.sum(values[(freqs >= 0.5) & (freqs < 4)]) / total,
         np.sum(values[(freqs >= 4) & (freqs < 8)]) / total,
         np.sum(values[(freqs >= 8) & (freqs < 12)]) / total,
         np.sum(values[(freqs >= 12) & (freqs < 16)]) / total,
@@ -116,7 +116,7 @@ def _extract_frequency_power_bands(freqs, values, relative=False):
     ]
 
 
-def _power_spectral_density_single_epoch(epoch, num_segments=6, frequency=256):
+def _power_spectral_density_single_epoch(epoch, frequency=256, freq_range=(0.5, 50)):
     """
     Computes the power spectral density for a single epoch with Welch's method.
 
@@ -129,13 +129,9 @@ def _power_spectral_density_single_epoch(epoch, num_segments=6, frequency=256):
         frequency distribution
         power spectral density
     """
-    return signal.welch(
-        epoch,
-        fs=frequency,
-        nperseg=len(epoch) // num_segments,
-        noverlap=0,
-        window="hamming",
-    )
+    model = FOOOF()
+    model.fit(*signal.welch(epoch, frequency), freq_range=(0.5, 50))
+    return model.freqs, model._spectrum_flat
 
 
 def power_spectral_density(stage, bands=True, relative=False):
@@ -333,7 +329,7 @@ def _compute_1_over_f(f, p, freq_range):
     return fm.aperiodic_params_[-1]
 
 
-def fooof_1_over_f(stage, frequency=256, freq_range=[3, 35]):
+def fooof_1_over_f(stage, frequency=256, freq_range=[0.5, 50]):
     """
     Computes the 1/f activity (aperiodic component) using the FOOOF algorithm. The power spectrum
     is computed using Welch's method.
