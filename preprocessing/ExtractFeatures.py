@@ -21,7 +21,7 @@ SUBJECTS_PATH = f"data/CAF_{CAF_DOSE}_Inventaire.csv"
 # directory with the raw EEG data
 DATA_PATH = f"data/raw_eeg{CAF_DOSE}"
 # directory where features will be stored
-FEATURES_PATH = f"data/Features{CAF_DOSE}_redo"
+FEATURES_PATH = f"data/Features{CAF_DOSE}"
 # if True, use a hypnogram to split the raw EEG data into sleep stages
 # if False, load data that is already split into sleep stages
 SPLIT_STAGES = False
