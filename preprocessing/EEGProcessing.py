@@ -89,52 +89,7 @@ def load_pre_split_data(path, subject_id):
     return data
 
 
-def _extract_frequency_power_bands(freqs, values, relative=False):
-    """
-    Extracts power of six frequency bands from a spectral distribution.
-
-    Args:
-        freqs: vector containing the discrete frequencies
-        values: vector containing the spectral distribution
-        relative: boolean indicating if the power bands should be a probability distribution or absolute sums
-
-    Returns:
-        list containing the power bands (delta, theta, alpha, sigma, beta, low gamma)
-    """
-    if relative:
-        total = np.sum(values)
-    else:
-        total = 1
-
-    return [
-        np.sum(values[(freqs >= 0.5) & (freqs < 4)]) / total,
-        np.sum(values[(freqs >= 4) & (freqs < 8)]) / total,
-        np.sum(values[(freqs >= 8) & (freqs < 12)]) / total,
-        np.sum(values[(freqs >= 12) & (freqs < 16)]) / total,
-        np.sum(values[(freqs >= 16) & (freqs < 32)]) / total,
-        np.sum(values[(freqs >= 32) & (freqs <= 50)]) / total,
-    ]
-
-
-def _power_spectral_density_single_epoch(epoch, frequency=256, freq_range=(0.5, 50)):
-    """
-    Computes the power spectral density for a single epoch with Welch's method.
-
-    Args:
-        epoch: vector with EEG data from one epoch
-        num_windows: number of segments used in Welch's method
-        frequency: sampling frequency of the EEG in Hz
-
-    Returns:
-        frequency distribution
-        power spectral density
-    """
-    model = FOOOF()
-    model.fit(*signal.welch(epoch, frequency), freq_range=(0.5, 50))
-    return model.freqs, model._spectrum_flat
-
-
-def power_spectral_density(stage, bands=True, relative=False):
+def power_spectral_density(stage, bands=True, frequency=256, freq_range=(0.5, 50)):
     """
     Computes the power spectral density for one sleep stage and (if bands is true) separates
     the spectrum into frequency bands.
@@ -150,28 +105,60 @@ def power_spectral_density(stage, bands=True, relative=False):
     electrode_count = stage.shape[0]
     epoch_count = stage.shape[2]
 
-    psd = []
-    for electrode in range(electrode_count):
-        # add a row for each electrode
-        psd.append([])
+    def _flat_spectrum(f, a, freq_range):
+        fm = FOOOF()
+        fm.fit(f, a, freq_range=freq_range)
+        return fm
 
-        for epoch in range(epoch_count):
-            # calculate PSD for the current epoch of the current electrode
-            freq, amp = _power_spectral_density_single_epoch(stage[electrode, :, epoch])
+    freq, amp = signal.welch(stage, frequency, axis=1)
 
-            # add a column for each epoch
-            psd[-1].append([])
+    amp = amp.transpose(0, 2, 1).reshape(-1, freq.shape[0])
 
-            if bands:
-                # add list with the power band values as the third dimension
-                power_bands = _extract_frequency_power_bands(
-                    freq, amp, relative=relative
-                )
-                psd[-1][-1] = power_bands
-            else:
-                # add amplitude array as the third dimension
-                psd[-1][-1] = amp
-    return np.array(psd)
+    result = Parallel(n_jobs=-1)(
+        delayed(_flat_spectrum)(freq, camp, freq_range) for camp in amp
+    )
+    freq = np.array([fm.freqs for fm in result]).reshape(
+        electrode_count, epoch_count, -1
+    )
+    amp = np.array([fm._spectrum_flat for fm in result]).reshape(
+        electrode_count, epoch_count, -1
+    )
+
+    if not bands:
+        return amp
+
+    result = np.empty((electrode_count, epoch_count, 6))
+    result[:, :, 0] = (
+        amp[(freq >= 0.5) & (freq < 4)]
+        .reshape(electrode_count, epoch_count, -1)
+        .sum(axis=-1)
+    )
+    result[:, :, 0] = (
+        amp[(freq >= 4) & (freq < 8)]
+        .reshape(electrode_count, epoch_count, -1)
+        .sum(axis=-1)
+    )
+    result[:, :, 0] = (
+        amp[(freq >= 8) & (freq < 12)]
+        .reshape(electrode_count, epoch_count, -1)
+        .sum(axis=-1)
+    )
+    result[:, :, 0] = (
+        amp[(freq >= 12) & (freq < 16)]
+        .reshape(electrode_count, epoch_count, -1)
+        .sum(axis=-1)
+    )
+    result[:, :, 0] = (
+        amp[(freq >= 16) & (freq < 32)]
+        .reshape(electrode_count, epoch_count, -1)
+        .sum(axis=-1)
+    )
+    result[:, :, 0] = (
+        amp[(freq >= 32) & (freq < 50)]
+        .reshape(electrode_count, epoch_count, -1)
+        .sum(axis=-1)
+    )
+    return result
 
 
 def shannon_entropy(signal, normalize=True):
