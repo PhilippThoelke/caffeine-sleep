@@ -92,12 +92,14 @@ def load_pre_split_data(path, subject_id):
 def power_spectral_density(stage, bands=True, frequency=256, freq_range=(0.5, 50)):
     """
     Computes the power spectral density for one sleep stage and (if bands is true) separates
-    the spectrum into frequency bands.
+    the spectrum into frequency bands. The power spectrum will be corrected for the 1/f-like
+    aperiodic component.
 
     Args:
         stage: EEG data from one sleep stage (electrodes x epoch steps x epochs)
         bands: boolean indicating if PSD for frequency bands or complete PSD should be returned (changes output shape)
-        relative: boolean idicating if the frequency power bands should be a probability distribution
+        frequency: sampling frequency of the EEG
+        freq_range: frequency range to fit FOOOF on
 
     Returns:
         power spectral density (electrodes x epochs x amplitudes) or (electrodes x epochs x bands)
@@ -133,27 +135,27 @@ def power_spectral_density(stage, bands=True, frequency=256, freq_range=(0.5, 50
         .reshape(electrode_count, epoch_count, -1)
         .sum(axis=-1)
     )
-    result[:, :, 0] = (
+    result[:, :, 1] = (
         amp[(freq >= 4) & (freq < 8)]
         .reshape(electrode_count, epoch_count, -1)
         .sum(axis=-1)
     )
-    result[:, :, 0] = (
+    result[:, :, 2] = (
         amp[(freq >= 8) & (freq < 12)]
         .reshape(electrode_count, epoch_count, -1)
         .sum(axis=-1)
     )
-    result[:, :, 0] = (
+    result[:, :, 3] = (
         amp[(freq >= 12) & (freq < 16)]
         .reshape(electrode_count, epoch_count, -1)
         .sum(axis=-1)
     )
-    result[:, :, 0] = (
+    result[:, :, 4] = (
         amp[(freq >= 16) & (freq < 32)]
         .reshape(electrode_count, epoch_count, -1)
         .sum(axis=-1)
     )
-    result[:, :, 0] = (
+    result[:, :, 5] = (
         amp[(freq >= 32) & (freq < 50)]
         .reshape(electrode_count, epoch_count, -1)
         .sum(axis=-1)
