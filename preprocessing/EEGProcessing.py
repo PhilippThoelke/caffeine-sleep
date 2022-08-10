@@ -108,7 +108,7 @@ def power_spectral_density(stage, bands=True, frequency=256, freq_range=(0.5, 50
     epoch_count = stage.shape[2]
 
     def _flat_spectrum(f, a, freq_range):
-        fm = FOOOF()
+        fm = FOOOF(verbose=False)
         fm.fit(f, a, freq_range=freq_range)
         return fm
 
@@ -313,7 +313,7 @@ def compute_dfa(stage):
 
 
 def _compute_1_over_f(f, p, freq_range):
-    fm = FOOOF()
+    fm = FOOOF(verbose=False)
     fm.fit(f, p, freq_range=freq_range)
     return fm.aperiodic_params_[-1]
 
