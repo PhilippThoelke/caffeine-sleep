@@ -183,7 +183,7 @@ def shannon_entropy(signal, normalize=True):
         shannon entropy as float
     """
     # normalize the signal to a probability distribution
-    signal /= np.sum(signal)
+    signal = (signal - signal.min()) / (signal.max() - signal.min())
     # calculate shannon entropy
     entropy = -np.sum(signal * np.log(signal))
 
