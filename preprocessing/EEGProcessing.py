@@ -89,7 +89,9 @@ def load_pre_split_data(path, subject_id):
     return data
 
 
-def power_spectral_density(stage, bands=True, frequency=256, freq_range=(0.5, 50)):
+def power_spectral_density(
+    stage, bands=True, remove_aperiodic=True, frequency=256, freq_range=(0.5, 50)
+):
     """
     Computes the power spectral density for one sleep stage and (if bands is true) separates
     the spectrum into frequency bands. The power spectrum will be corrected for the 1/f-like
@@ -98,6 +100,7 @@ def power_spectral_density(stage, bands=True, frequency=256, freq_range=(0.5, 50
     Args:
         stage: EEG data from one sleep stage (electrodes x epoch steps x epochs)
         bands: boolean indicating if PSD for frequency bands or complete PSD should be returned (changes output shape)
+        remove_aperiodic: whether to remove the aperiodic component from the power spectrum
         frequency: sampling frequency of the EEG
         freq_range: frequency range to fit FOOOF on
 
@@ -114,17 +117,22 @@ def power_spectral_density(stage, bands=True, frequency=256, freq_range=(0.5, 50
 
     freq, amp = signal.welch(stage, frequency, axis=1)
 
-    amp = amp.transpose(0, 2, 1).reshape(-1, freq.shape[0])
-
-    result = Parallel(n_jobs=-1)(
-        delayed(_flat_spectrum)(freq, camp, freq_range) for camp in amp
-    )
-    freq = np.array([fm.freqs for fm in result]).reshape(
-        electrode_count, epoch_count, -1
-    )
-    amp = np.array([fm._spectrum_flat for fm in result]).reshape(
-        electrode_count, epoch_count, -1
-    )
+    if remove_aperiodic:
+        # fit FOOOF and extract flattened spectrum
+        amp = amp.transpose(0, 2, 1).reshape(-1, freq.shape[0])
+        result = Parallel(n_jobs=-1)(
+            delayed(_flat_spectrum)(freq, camp, freq_range) for camp in amp
+        )
+        freq = np.array([fm.freqs for fm in result]).reshape(
+            electrode_count, epoch_count, -1
+        )
+        amp = np.array([fm._spectrum_flat for fm in result]).reshape(
+            electrode_count, epoch_count, -1
+        )
+    else:
+        # use full power spectrum
+        amp = amp.transpose(0, 2, 1)
+        freq = np.broadcast_arrays(freq[None, None], amp)[0]
 
     if not bands:
         return amp
@@ -259,19 +267,20 @@ def _distance(x1, x2):
     return np.max(np.abs(x1 - x2))
 
 
-def spectral_entropy(stage, method="shannon"):
+def spectral_entropy(stage, method="shannon", remove_aperiodic=False):
     """
     Computes the spectral entropy for one sleep stage using the specified entropy method (permutation or shannon).
 
     Args:
         stage: EEG data over which the spectral entropy should be computed (electrodes x epoch steps x epochs)
         method: string indicating which entropy method to be used (shannon, permutation or sample)
+        remove_aperiodic: whether to use the 1/f corrected or full power spectrum
 
     Returns:
         spectral entropy of the sleep stage (electrodes x epochs)
     """
     # compute power spectral density
-    psd = power_spectral_density(stage, bands=False)
+    psd = power_spectral_density(stage, bands=False, remove_aperiodic=remove_aperiodic)
 
     electrode_count = psd.shape[0]
     epoch_count = psd.shape[1]

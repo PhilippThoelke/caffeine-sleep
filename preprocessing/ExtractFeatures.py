@@ -32,9 +32,12 @@ FILTER_RANGE = (0.5, 50)
 
 # which features to compute
 psd = True
+psd_uncorrected = True
 sampEn = True
 specShanEn = True
+specShanEn_uncorrected = True
 specSampEn = True
+specSampEn_uncorrected = True
 dfa = True
 oneOverF = True
 lziv = True
@@ -61,9 +64,12 @@ subject_ids = pd.read_csv(SUBJECTS_PATH, index_col=0)["Subject_id"]
 done_subjects = []
 while len(subject_ids) > len(done_subjects):
     psd_done = False
+    psd_uncorrected_done = False
     sampEn_done = False
     specShanEn_done = False
+    specShanEn_uncorrected_done = False
     specSampEn_done = False
+    specSampEn_uncorrected_done = False
     dfa_done = False
     oneOverF_done = False
     lziv_done = False
@@ -86,12 +92,18 @@ while len(subject_ids) > len(done_subjects):
         os.mkdir(subject_path)
         if psd:
             create_folder("PSD", subject_path)
+        if psd_uncorrected:
+            create_folder("PSDUncorrected", subject_path)
         if sampEn:
             create_folder("SampEn", subject_path)
         if specShanEn:
             create_folder("SpecShanEn", subject_path)
+        if specShanEn_uncorrected:
+            create_folder("SpecShanEnUncorrected", subject_path)
         if specSampEn:
             create_folder("SpecSampEn", subject_path)
+        if specSampEn_uncorrected:
+            create_folder("SpecSampEnUncorrected", subject_path)
         if dfa:
             create_folder("DFA", subject_path)
         if oneOverF:
@@ -111,6 +123,12 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("PSD", subject_path)
+        if psd_uncorrected:
+            if "PSDUncorrected" in features:
+                psd_uncorrected_done = True
+            else:
+                finished = False
+                create_folder("PSDUncorrected", subject_path)
         if sampEn:
             if "SampEn" in features:
                 sampEn_done = True
@@ -123,12 +141,24 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("SpecShanEn", subject_path)
+        if specShanEn_uncorrected:
+            if "SpecShanEnUncorrected" in features:
+                specShanEn_uncorrected_done = True
+            else:
+                finished = False
+                create_folder("SpecShanEnUncorrected", subject_path)
         if specSampEn:
             if "SpecSampEn" in features:
                 specSampEn_done = True
             else:
                 finished = False
                 create_folder("SpecSampEn", subject_path)
+        if specSampEn_uncorrected:
+            if "SpecSampEnUncorrected" in features:
+                specSampEn_uncorrected_done = True
+            else:
+                finished = False
+                create_folder("SpecSampEnUncorrected", subject_path)
         if dfa:
             if "DFA" in features:
                 dfa_done = True
@@ -181,19 +211,31 @@ while len(subject_ids) > len(done_subjects):
         print("done")
 
     if FILTER_RANGE is not None:
+        print(
+            "Band pass filtering the data...", end="", flush=True,
+        )
         for key in stages.keys():
             curr = stages[key].astype(float).transpose(0, 2, 1)
             result = filter_data(
                 curr, 256, *FILTER_RANGE, n_jobs=-1, verbose="CRITICAL"
             )
             stages[key] = result.transpose(0, 2, 1)
+        print("done")
 
     if psd and not psd_done:
         feature = {}
+        print("Computing 1/f corrected power spectral density...", end="", flush=True)
+        for key, stage in stages.items():
+            feature[key] = power_spectral_density(stage, remove_aperiodic=True)
+        save_feature_dict("PSD", subject_path, feature)
+        print("done")
+
+    if psd_uncorrected and not psd_uncorrected_done:
+        feature = {}
         print("Computing power spectral density...", end="", flush=True)
         for key, stage in stages.items():
-            feature[key] = power_spectral_density(stage)
-        save_feature_dict("PSD", subject_path, feature)
+            feature[key] = power_spectral_density(stage, remove_aperiodic=False)
+        save_feature_dict("PSDUncorrected", subject_path, feature)
         print("done")
 
     if sampEn and not sampEn_done:
@@ -209,18 +251,38 @@ while len(subject_ids) > len(done_subjects):
 
     if specShanEn and not specShanEn_done:
         feature = {}
+        print("Computing 1/f corrected spectral shannon entropy...", end="", flush=True)
+        for key, stage in stages.items():
+            feature[key] = spectral_entropy(
+                stage, method="shannon", remove_aperiodic=True
+            )
+        save_feature_dict("SpecShanEn", subject_path, feature)
+        print("done")
+
+    if specShanEn_uncorrected and not specShanEn_uncorrected_done:
+        feature = {}
         print("Computing spectral shannon entropy...", end="", flush=True)
         for key, stage in stages.items():
-            feature[key] = spectral_entropy(stage, method="shannon")
-        save_feature_dict("SpecShanEn", subject_path, feature)
+            feature[key] = spectral_entropy(
+                stage, method="shannon", remove_aperiodic=False
+            )
+        save_feature_dict("SpecShanEnUncorrected", subject_path, feature)
         print("done")
 
     if specSampEn and not specSampEn_done:
         feature = {}
+        print("Computing 1/f corrected spectral sample entropy...", end="", flush=True)
+        for key, stage in stages.items():
+            feature[key] = spectral_entropy(stage, method="sample",remove_aperiodic=True)
+        save_feature_dict("SpecSampEn", subject_path, feature)
+        print("done")
+
+    if specSampEn_uncorrected and not specSampEn_uncorrected_done:
+        feature = {}
         print("Computing spectral sample entropy...", end="", flush=True)
         for key, stage in stages.items():
-            feature[key] = spectral_entropy(stage, method="sample")
-        save_feature_dict("SpecSampEn", subject_path, feature)
+            feature[key] = spectral_entropy(stage, method="sample",remove_aperiodic=False)
+        save_feature_dict("SpecSampEnUncorrected", subject_path, feature)
         print("done")
 
     if dfa and not dfa_done:

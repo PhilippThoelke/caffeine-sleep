@@ -35,12 +35,13 @@ if not NORMALIZE_FEATURES:
 BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
 
 
-def get_psd_labels_groups(data_dict):
+def get_psd_labels_groups(data_dict, uncorrected=False):
     print("PSD...")
+    feature_name = "PSDUncorrected" if uncorrected else "PSD"
 
     # get the labels, load the PSD feature and load the hypnograms
     subject_labels = Loader.load_labels(CAF_DOSE, SUBJECTS_PATH)
-    psd = Loader.load_feature("PSD", CAF_DOSE, FEATURES_PATH)
+    psd = Loader.load_feature(feature_name, CAF_DOSE, FEATURES_PATH)
 
     meta_info = pd.read_csv(SUBJECTS_PATH, index_col=0)
 
@@ -147,17 +148,17 @@ def get_psd_labels_groups(data_dict):
             if stage not in data_dict:
                 data_dict[stage] = dict()
             # add all power bands to the feature dictionary for the current stage
-            data_dict[stage][f"PSD_{band}"] = concatenated[:, :, i].T
+            data_dict[stage][f"{feature_name}_{band}"] = concatenated[:, :, i].T
 
             if stage == "AWA":
                 if "AWSL" not in data_dict:
                     data_dict["AWSL"] = dict()
-                data_dict["AWSL"][f"PSD_{band}"] = concatenated_awsl[:, :, i].T
+                data_dict["AWSL"][f"{feature_name}_{band}"] = concatenated_awsl[:, :, i].T
 
     if "N1" in data_dict:
         data_dict["NREM"] = dict()
         for band in BANDS:
-            ft = f"PSD_{band}"
+            ft = f"{feature_name}_{band}"
             # combine N1, N2 and N3 into NREM
             nrem = [data_dict["N1"][ft], data_dict["N2"][ft], data_dict["N3"][ft]]
             # add current power band to the NREM features dictionary
@@ -268,10 +269,13 @@ if __name__ == "__main__":
     data = dict()
 
     print("-------------------- Concatenating features --------------------")
-    labels, groups, names = get_psd_labels_groups(data)
+    labels, groups, names = get_psd_labels_groups(data, uncorrected=False)
+    get_psd_labels_groups(data, uncorrected=True)
     get_feature(data, "SpecShanEn")
+    get_feature(data, "SpecShanEnUncorrected")
     get_feature(data, "SampEn")
     get_feature(data, "SpecSampEn")
+    get_feature(data, "SpecSampEnUncorrected")
     get_feature(data, "DFA")
     get_feature(data, "OneOverF")
     get_feature(data, "LZiv")
