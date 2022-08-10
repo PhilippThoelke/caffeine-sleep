@@ -2,6 +2,7 @@ import os
 import glob
 import numpy as np
 import pandas as pd
+from mne.filter import filter_data
 from EEGProcessing import (
     load_data,
     extract_sleep_stages,
@@ -25,15 +26,18 @@ FEATURES_PATH = f"data/Features{CAF_DOSE}"
 # if True, use a hypnogram to split the raw EEG data into sleep stages
 # if False, load data that is already split into sleep stages
 SPLIT_STAGES = False
+# if None, don't filter the data. Otherwise, a tuple of (l_freq, h_freq)
+# is used to band-pass filter the data before feature extraction
+FILTER_RANGE = (0.5, 50)
 
 # which features to compute
 psd = True
-sampEn = False
+sampEn = True
 specShanEn = True
 specSampEn = True
-dfa = False
-oneOverF = False
-lziv = False
+dfa = True
+oneOverF = True
+lziv = True
 
 
 def save_feature_dict(name, folder_path, feature_dict):
@@ -175,6 +179,14 @@ while len(subject_ids) > len(done_subjects):
         )
         stages = load_pre_split_data(DATA_PATH, subject_id)
         print("done")
+
+    if FILTER_RANGE is not None:
+        for key in stages.keys():
+            curr = stages[key].astype(float).transpose(0, 2, 1)
+            result = filter_data(
+                curr, 256, *FILTER_RANGE, n_jobs=-1, verbose="CRITICAL"
+            )
+            stages[key] = result.transpose(0, 2, 1)
 
     if psd and not psd_done:
         feature = {}
