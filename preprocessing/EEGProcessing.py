@@ -115,7 +115,7 @@ def power_spectral_density(
         fm.fit(f, a, freq_range=freq_range)
         return fm
 
-    freq, amp = signal.welch(stage, frequency, axis=1)
+    freq, amp = signal.welch(stage, frequency, nperseg=4 * frequency, axis=1)
 
     if remove_aperiodic:
         # fit FOOOF and extract flattened spectrum
