@@ -171,7 +171,7 @@ def power_spectral_density(
     return result
 
 
-def shannon_entropy(signal, normalize=True):
+def shannon_entropy(signal, normalize=True, eps=1e-8):
     """
     Computes the shannon entropy for a single epoch.
 
@@ -185,7 +185,7 @@ def shannon_entropy(signal, normalize=True):
     # normalize the signal to a probability distribution
     signal = (signal - signal.min()) / (signal.max() - signal.min())
     # calculate shannon entropy
-    entropy = -np.sum(signal * np.log(signal))
+    entropy = -np.sum(signal * np.log(signal + eps))
 
     if normalize:
         # normalize entropy to range between 0 and 1
