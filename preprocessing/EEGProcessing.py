@@ -123,12 +123,12 @@ def power_spectral_density(
         result = Parallel(n_jobs=-1)(
             delayed(_flat_spectrum)(freq, camp, freq_range) for camp in amp
         )
-        freq = np.array([fm.freqs for fm in result]).reshape(
-            electrode_count, epoch_count, -1
-        )
-        amp = np.array([fm._spectrum_flat for fm in result]).reshape(
-            electrode_count, epoch_count, -1
-        )
+        freq = np.array(
+            [fm.freqs for fm in result if fm._spectrum_flat is not None]
+        ).reshape(electrode_count, epoch_count, -1)
+        amp = np.array(
+            [fm._spectrum_flat for fm in result if fm._spectrum_flat is not None]
+        ).reshape(electrode_count, epoch_count, -1)
     else:
         # use full power spectrum
         amp = amp.transpose(0, 2, 1)
