@@ -40,3 +40,5 @@ To train random forests on the complete multi-feature, multi-electrode data, run
 - [Effects of caffeine on daytime recovery sleep: A double challenge to the sleep–wake cycle in aging](https://www.sciencedirect.com/science/article/pii/S1389945709000094)
 
 - [Sleep is more sensitive to high doses of caffeine in the middle years of life](https://journals.sagepub.com/doi/full/10.1177/0269881115575535?url_ver=Z39.88-2003&rfr_id=ori%3Arid%3Acrossref.org&rfr_dat=cr_pub%3Dpubmed)
+
+- [Caffeine intake (200 mg) in the morning affects human sleep and EEG power spectra at night](https://www.sciencedirect.com/science/article/pii/000689939500040W?ref=cra_js_challenge&fr=RR-1)
