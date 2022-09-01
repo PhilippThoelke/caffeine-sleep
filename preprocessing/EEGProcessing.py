@@ -118,16 +118,25 @@ def power_spectral_density(
     freq, amp = signal.welch(stage, frequency, nperseg=4 * frequency, axis=1)
 
     if remove_aperiodic:
-        # fit FOOOF and extract flattened spectrum
+        # fit FOOOF model to the power spectra
         amp = amp.transpose(0, 2, 1).reshape(-1, freq.shape[0])
         result = Parallel(n_jobs=-1)(
             delayed(_flat_spectrum)(freq, camp, freq_range) for camp in amp
         )
-        freq = np.array(
-            [fm.freqs for fm in result if fm._spectrum_flat is not None]
-        ).reshape(electrode_count, epoch_count, -1)
+        # extract frequency bins
+        freq = np.array([fm.freqs for fm in result]).reshape(
+            electrode_count, epoch_count, -1
+        )
+        # extract amplitudes (set to NaN if FOOOF failed to fit the model)
         amp = np.array(
-            [fm._spectrum_flat for fm in result if fm._spectrum_flat is not None]
+            [
+                (
+                    fm._spectrum_flat
+                    if fm._spectrum_flat is not None
+                    else np.full_like(fm.freqs, float("nan"))
+                )
+                for fm in result
+            ]
         ).reshape(electrode_count, epoch_count, -1)
     else:
         # use full power spectrum
@@ -171,7 +180,7 @@ def power_spectral_density(
     return result
 
 
-def shannon_entropy(signal, normalize=True, eps=1e-8):
+def shannon_entropy(signal, normalize=True, eps=1e-6):
     """
     Computes the shannon entropy for a single epoch.
 
@@ -291,14 +300,17 @@ def spectral_entropy(stage, method="shannon", remove_aperiodic=False):
     spec_entropy = np.empty((electrode_count, epoch_count))
     for electrode in range(electrode_count):
         for epoch in range(epoch_count):
+            curr_signal = psd[electrode, epoch]
+            curr_signal = curr_signal[~np.isnan(curr_signal)]
+
             if method.lower() == "shannon":
                 # get PSD shannon entropy for the current electrode and epoch
                 spec_entropy[electrode, epoch] = shannon_entropy(
-                    psd[electrode, epoch], normalize=True
+                    curr_signal, normalize=True
                 )
             elif method.lower() == "sample":
                 # get PSD sample entropy for the current electrode and epoch
-                spec_entropy[electrode, epoch] = sample_entropy(psd[electrode, epoch])
+                spec_entropy[electrode, epoch] = sample_entropy(curr_signal)
             else:
                 # unknown entropy method
                 raise NotImplementedError(f'Entropy type "{method}" is unknown')

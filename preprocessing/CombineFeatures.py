@@ -153,7 +153,9 @@ def get_psd_labels_groups(data_dict, uncorrected=False):
             if stage == "AWA":
                 if "AWSL" not in data_dict:
                     data_dict["AWSL"] = dict()
-                data_dict["AWSL"][f"{feature_name}_{band}"] = concatenated_awsl[:, :, i].T
+                data_dict["AWSL"][f"{feature_name}_{band}"] = concatenated_awsl[
+                    :, :, i
+                ].T
 
     if "N1" in data_dict:
         data_dict["NREM"] = dict()
@@ -353,8 +355,8 @@ if __name__ == "__main__":
                     data_1 = data_1[permutations[i][1]]
 
                 added.add(i)
-                data_avg[stage][feature].append(data_0.mean(axis=0))
-                data_avg[stage][feature].append(data_1.mean(axis=0))
+                data_avg[stage][feature].append(np.nanmean(data_0, axis=0))
+                data_avg[stage][feature].append(np.nanmean(data_1, axis=0))
 
             data_avg[stage][feature] = np.array(data_avg[stage][feature])
 
