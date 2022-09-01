@@ -182,10 +182,13 @@ def shannon_entropy(signal, normalize=True, eps=1e-8):
     Returns:
         shannon entropy as float
     """
+    if (signal <= 0).any():
+        # shift the signal to not include negative values
+        signal = signal - signal.min() + eps
     # normalize the signal to a probability distribution
-    signal = (signal - signal.min()) / (signal.max() - signal.min())
+    signal /= signal.sum()
     # calculate shannon entropy
-    entropy = -np.sum(signal * np.log(signal + eps))
+    entropy = -np.sum(signal * np.log(signal))
 
     if normalize:
         # normalize entropy to range between 0 and 1
