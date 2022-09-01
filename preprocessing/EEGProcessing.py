@@ -355,7 +355,7 @@ def fooof_1_over_f(stage, frequency=256, freq_range=[0.5, 50]):
     Returns:
         1/f activity of the EEG (electrodes x epochs)
     """
-    f, psd = signal.welch(stage, frequency, axis=1)
+    f, psd = signal.welch(stage, frequency, nperseg=4 * frequency, axis=1)
     oof = np.empty((stage.shape[0], stage.shape[2]))
     for elec in range(stage.shape[0]):
         oof[elec] = Parallel(n_jobs=-1)(
