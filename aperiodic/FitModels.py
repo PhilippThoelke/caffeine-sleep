@@ -6,12 +6,12 @@ from mne.filter import filter_data
 from scipy.signal import welch
 from fooof import FOOOF
 from joblib import Parallel, delayed
-from matplotlib import pyplot as plt
 import pickle
 
 
 DATA_PATH = "data/raw_eeg200/"
 RESULTS_PATH = "results/final/fooof200/"
+STAGES = ["NREM", "REM"]
 
 
 def fooof_single_channel(freq, psd, freq_range):
@@ -50,8 +50,11 @@ def fit_fooof(stage, condition, sfreq=256, freq_range=(0.5, 50), channelwise=Fal
 
 if __name__ == "__main__":
     sfreq = 256
-    fm_caf_all = fit_fooof("NREM", "CAF", sfreq=sfreq, channelwise=True)
-    fm_plac_all = fit_fooof("NREM", "PLAC", sfreq=sfreq, channelwise=True)
+    results = {}
+    for stage in STAGES:
+        fm_caf = fit_fooof(stage, "CAF", sfreq=sfreq, channelwise=True)
+        fm_plac = fit_fooof(stage, "PLAC", sfreq=sfreq, channelwise=True)
+        results[stage] = {"CAF": fm_caf, "PLAC": fm_plac}
 
-    with open(join(RESULTS_PATH, "fooof.pkl"), "wb") as f:
-        pickle.dump({"CAF": fm_caf_all, "PLAC": fm_plac_all}, f)
+    with open(join(RESULTS_PATH, f"fooof.pkl"), "wb") as f:
+        pickle.dump(results, f)
