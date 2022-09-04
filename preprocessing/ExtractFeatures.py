@@ -2,7 +2,7 @@ import os
 import glob
 import numpy as np
 import pandas as pd
-from mne.filter import filter_data
+from mne.filter import filter_data, notch_filter
 from EEGProcessing import (
     load_data,
     extract_sleep_stages,
@@ -28,7 +28,9 @@ FEATURES_PATH = f"data/Features{CAF_DOSE}"
 SPLIT_STAGES = False
 # if None, don't filter the data. Otherwise, a tuple of (l_freq, h_freq)
 # is used to band-pass filter the data before feature extraction
-FILTER_RANGE = (0.5, 50)
+FILTER_RANGE = None
+# notch frequency (set to None to disable notch filtering)
+NOTCH_FREQ = 60
 
 # which features to compute
 psd = True
@@ -210,6 +212,22 @@ while len(subject_ids) > len(done_subjects):
         stages = load_pre_split_data(DATA_PATH, subject_id)
         print("done")
 
+    if NOTCH_FREQ is not None:
+        print(
+            "Notch filtering the data...", end="", flush=True,
+        )
+        for key in stages.keys():
+            curr = stages[key].astype(float).transpose(0, 2, 1)
+            result = notch_filter(
+                curr,
+                256,
+                np.arange(NOTCH_FREQ, NOTCH_FREQ * 3, NOTCH_FREQ),
+                n_jobs=-1,
+                verbose="CRITICAL",
+            )
+            stages[key] = result.transpose(0, 2, 1)
+        print("done")
+
     if FILTER_RANGE is not None:
         print(
             "Band pass filtering the data...", end="", flush=True,
@@ -273,7 +291,9 @@ while len(subject_ids) > len(done_subjects):
         feature = {}
         print("Computing 1/f corrected spectral sample entropy...", end="", flush=True)
         for key, stage in stages.items():
-            feature[key] = spectral_entropy(stage, method="sample",remove_aperiodic=True)
+            feature[key] = spectral_entropy(
+                stage, method="sample", remove_aperiodic=True
+            )
         save_feature_dict("SpecSampEn", subject_path, feature)
         print("done")
 
@@ -281,7 +301,9 @@ while len(subject_ids) > len(done_subjects):
         feature = {}
         print("Computing spectral sample entropy...", end="", flush=True)
         for key, stage in stages.items():
-            feature[key] = spectral_entropy(stage, method="sample",remove_aperiodic=False)
+            feature[key] = spectral_entropy(
+                stage, method="sample", remove_aperiodic=False
+            )
         save_feature_dict("SpecSampEnUncorrected", subject_path, feature)
         print("done")
 
