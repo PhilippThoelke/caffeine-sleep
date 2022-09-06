@@ -3,6 +3,7 @@ import glob
 import numpy as np
 import pandas as pd
 from mne.filter import filter_data, notch_filter
+from joblib import Parallel, delayed
 from EEGProcessing import (
     load_data,
     extract_sleep_stages,
@@ -262,8 +263,10 @@ while len(subject_ids) > len(done_subjects):
         for key, stage in stages.items():
             feature[key] = np.empty((stage.shape[0], stage.shape[2]))
             for elec in range(stage.shape[0]):
-                for epoch in range(stage.shape[2]):
-                    feature[key][elec, epoch] = sample_entropy(stage[elec, :, epoch])
+                feature[key][elec] = Parallel(n_jobs=-1)(
+                    delayed(sample_entropy)(stage[elec, :, epoch])
+                    for epoch in range(stage.shape[2])
+                )
         save_feature_dict("SampEn", subject_path, feature)
         print("done")
 
