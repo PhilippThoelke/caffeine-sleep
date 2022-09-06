@@ -36,7 +36,7 @@ BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
 
 
 def get_psd_labels_groups(data_dict, uncorrected=False):
-    print("PSD...")
+    print(f"{'Uncorrected ' if uncorrected else ''}PSD...")
     feature_name = "PSDUncorrected" if uncorrected else "PSD"
 
     # get the labels, load the PSD feature and load the hypnograms
