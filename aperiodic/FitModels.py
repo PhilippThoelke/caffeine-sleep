@@ -15,14 +15,16 @@ STAGES = ["NREM", "REM"]
 
 
 def fooof_single_channel(freq, psd, freq_range):
-    fm = FOOOF(aperiodic_mode="knee")
+    fm = FOOOF()
     fm.fit(freq, psd, freq_range)
     return fm
 
 
-def fit_fooof(stage, condition, sfreq=256, freq_range=(0.5, 50), channelwise=False):
+def fit_fooof(
+    stage, condition, sfreq=256, freq_range=(3, 35), channelwise=False, subject="*"
+):
     # load data
-    paths = glob.glob(join(DATA_PATH, f"*{stage}*{condition}.npy"))
+    paths = glob.glob(join(DATA_PATH, f"{subject}*{stage}*{condition}.npy"))
     data = np.concatenate([np.load(path) for path in paths], axis=0)
     # filter data
     data = filter_data(
@@ -52,8 +54,12 @@ if __name__ == "__main__":
     sfreq = 256
     results = {}
     for stage in STAGES:
-        fm_caf = fit_fooof(stage, "CAF", sfreq=sfreq, channelwise=True)
-        fm_plac = fit_fooof(stage, "PLAC", sfreq=sfreq, channelwise=True)
+        fm_caf = fit_fooof(
+            stage, "CAF", sfreq=sfreq, channelwise=True, subject="10005n*"
+        )
+        fm_plac = fit_fooof(
+            stage, "PLAC", sfreq=sfreq, channelwise=True, subject="10005n*"
+        )
         results[stage] = {"CAF": fm_caf, "PLAC": fm_plac}
 
     with open(join(RESULTS_PATH, f"fooof.pkl"), "wb") as f:
