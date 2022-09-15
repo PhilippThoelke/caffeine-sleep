@@ -32,7 +32,7 @@ if not NORMALIZE_FEATURES:
     RESULT_PATH = RESULT_PATH + "_no_norm"
 
 # which frequency bands will be extracted
-BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
+BANDS = ["delta", "theta", "alpha", "sigma", "beta"]
 
 
 def get_psd_labels_groups(data_dict, uncorrected=False):
