@@ -29,9 +29,9 @@ FEATURES_PATH = f"data/Features{CAF_DOSE}"
 SPLIT_STAGES = False
 # if None, don't filter the data. Otherwise, a tuple of (l_freq, h_freq)
 # is used to band-pass filter the data before feature extraction
-FILTER_RANGE = None
+FILTER_RANGE = (0.5, 32)
 # notch frequency (set to None to disable notch filtering)
-NOTCH_FREQ = 60
+NOTCH_FREQ = None
 
 # which features to compute
 psd = True

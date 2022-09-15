@@ -90,7 +90,7 @@ def load_pre_split_data(path, subject_id):
 
 
 def power_spectral_density(
-    stage, bands=True, remove_aperiodic=True, frequency=256, freq_range=(0.5, 50)
+    stage, bands=True, remove_aperiodic=True, frequency=256, fooof_freq_range=(3, 32)
 ):
     """
     Computes the power spectral density for one sleep stage and (if bands is true) separates
@@ -121,7 +121,7 @@ def power_spectral_density(
         # fit FOOOF model to the power spectra
         amp = amp.transpose(0, 2, 1).reshape(-1, freq.shape[0])
         result = Parallel(n_jobs=-1)(
-            delayed(_flat_spectrum)(freq, camp, freq_range) for camp in amp
+            delayed(_flat_spectrum)(freq, camp, fooof_freq_range) for camp in amp
         )
         # extract frequency bins
         freq = np.array([fm.freqs for fm in result]).reshape(
@@ -146,7 +146,7 @@ def power_spectral_density(
     if not bands:
         return amp
 
-    result = np.empty((electrode_count, epoch_count, 6))
+    result = np.empty((electrode_count, epoch_count, 5))
     result[:, :, 0] = (
         amp[(freq >= 0.5) & (freq < 4)]
         .reshape(electrode_count, epoch_count, -1)
@@ -169,11 +169,6 @@ def power_spectral_density(
     )
     result[:, :, 4] = (
         amp[(freq >= 16) & (freq < 32)]
-        .reshape(electrode_count, epoch_count, -1)
-        .sum(axis=-1)
-    )
-    result[:, :, 5] = (
-        amp[(freq >= 32) & (freq < 50)]
         .reshape(electrode_count, epoch_count, -1)
         .sum(axis=-1)
     )
@@ -342,7 +337,7 @@ def _compute_1_over_f(f, p, freq_range):
     return fm.aperiodic_params_[-1]
 
 
-def fooof_1_over_f(stage, frequency=256, freq_range=[0.5, 50]):
+def fooof_1_over_f(stage, frequency=256, freq_range=[3, 32]):
     """
     Computes the 1/f activity (aperiodic component) using the FOOOF algorithm. The power spectrum
     is computed using Welch's method.
