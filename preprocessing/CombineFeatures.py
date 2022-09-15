@@ -33,6 +33,8 @@ if not NORMALIZE_FEATURES:
 
 # which frequency bands will be extracted
 BANDS = ["delta", "theta", "alpha", "sigma", "beta"]
+# which sleep stages to keep
+STAGES = ["NREM", "REM"]
 
 
 def get_psd_labels_groups(data_dict, uncorrected=False):
@@ -288,6 +290,9 @@ if __name__ == "__main__":
     labels_avg = {}
     groups_avg = {}
     for stage, current in data.items():
+        if stage not in STAGES:
+            continue
+
         data_avg[stage] = {}
         labels_avg[stage] = []
         groups_avg[stage] = []

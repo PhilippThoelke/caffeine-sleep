@@ -34,6 +34,11 @@ def load_feature(feature_name, caf_dose, features_path):
                 for p in glob.glob(os.path.join(path, "*.npy"))
             ]
         )
+        if len(stages) == 0:
+            print(
+                f"The following directory doesn't contain features: {path}. "
+                "This will likely cause an error down the line"
+            )
         for stage in stages:
             if stage not in feature:
                 feature[stage] = {}
