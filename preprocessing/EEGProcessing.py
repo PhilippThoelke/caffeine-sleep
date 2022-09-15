@@ -90,7 +90,7 @@ def load_pre_split_data(path, subject_id):
 
 
 def power_spectral_density(
-    stage, bands=True, remove_aperiodic=True, frequency=256, fooof_freq_range=(3, 32)
+    stage, bands=True, remove_aperiodic=True, frequency=256, fooof_freq_range=(0.5, 32)
 ):
     """
     Computes the power spectral density for one sleep stage and (if bands is true) separates
@@ -111,7 +111,7 @@ def power_spectral_density(
     epoch_count = stage.shape[2]
 
     def _flat_spectrum(f, a, freq_range):
-        fm = FOOOF(verbose=False)
+        fm = FOOOF(max_n_peaks=5, verbose=False)
         fm.fit(f, a, freq_range=freq_range)
         return fm
 
@@ -332,12 +332,12 @@ def compute_dfa(stage):
 
 
 def _compute_1_over_f(f, p, freq_range):
-    fm = FOOOF(verbose=False)
+    fm = FOOOF(max_n_peaks=5, verbose=False)
     fm.fit(f, p, freq_range=freq_range)
     return fm.aperiodic_params_[-1]
 
 
-def fooof_1_over_f(stage, frequency=256, freq_range=[3, 32]):
+def fooof_1_over_f(stage, frequency=256, freq_range=[0.5, 32]):
     """
     Computes the 1/f activity (aperiodic component) using the FOOOF algorithm. The power spectrum
     is computed using Welch's method.
