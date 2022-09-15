@@ -1,6 +1,6 @@
 from tqdm import tqdm
 import glob
-from os.path import join
+from os.path import join, exists
 import numpy as np
 from mne.filter import filter_data
 from scipy.signal import welch
@@ -47,6 +47,8 @@ def fit_fooof(
 
 
 if __name__ == "__main__":
+    assert exists(RESULTS_PATH), f"result path {RESULTS_PATH} doesn't exist"
+
     sfreq = 256
     results = {}
     for stage in STAGES:
