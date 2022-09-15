@@ -25,6 +25,8 @@ BALANCE_EPOCHS = False
 NORMALIZE_FEATURES = True
 # percentage of subjects to ignore when balancing (removes subjects with lowest number of sleep epochs)
 DROP_SUBJECTS_PCT = 0
+# if True, also saves unaveraged (per-epoch) features
+SAVE_UNAVERAGED = False
 
 if BALANCE_EPOCHS:
     RESULT_PATH = RESULT_PATH + "_balanced"
@@ -244,7 +246,9 @@ def normalize(data_dict, groups_dict):
             for group in np.unique(groups_dict[stage]):
                 mask = groups_dict[stage] == group
                 curr = data_dict[stage][feature][mask]
-                data_dict[stage][feature][mask] = (curr - curr.mean()) / curr.std()
+
+                mean, std = np.nanmean(curr), np.nanstd(curr)
+                data_dict[stage][feature][mask] = (curr - mean) / std
 
 
 def normalize_avg(data_avg, groups_avg, data, groups):
@@ -264,9 +268,9 @@ def normalize_avg(data_avg, groups_avg, data, groups):
 
                 curr_avg = data_avg[stage][feature][mask_avg]
                 curr = data[stage][feature][mask]
-                data_avg[stage][feature][mask_avg] = (
-                    curr_avg - curr.mean()
-                ) / curr.std()
+
+                mean, std = np.nanmean(curr), np.nanstd(curr)
+                data_avg[stage][feature][mask_avg] = (curr_avg - mean) / std
 
 
 if __name__ == "__main__":
@@ -388,14 +392,19 @@ if __name__ == "__main__":
         else:
             age_suffix += f"-t{MAX_AGE}"
 
-    with open(os.path.join(RESULT_PATH, f"data{age_suffix}.pickle"), "wb") as file:
-        pickle.dump(data, file)
+    if SAVE_UNAVERAGED:
+        with open(os.path.join(RESULT_PATH, f"data{age_suffix}.pickle"), "wb") as file:
+            pickle.dump(data, file)
 
-    with open(os.path.join(RESULT_PATH, f"labels{age_suffix}.pickle"), "wb") as file:
-        pickle.dump(labels, file)
+        with open(
+            os.path.join(RESULT_PATH, f"labels{age_suffix}.pickle"), "wb"
+        ) as file:
+            pickle.dump(labels, file)
 
-    with open(os.path.join(RESULT_PATH, f"groups{age_suffix}.pickle"), "wb") as file:
-        pickle.dump(groups, file)
+        with open(
+            os.path.join(RESULT_PATH, f"groups{age_suffix}.pickle"), "wb"
+        ) as file:
+            pickle.dump(groups, file)
 
     with open(os.path.join(RESULT_PATH, f"data_avg{age_suffix}.pickle"), "wb") as file:
         pickle.dump(data_avg, file)
@@ -409,6 +418,7 @@ if __name__ == "__main__":
         os.path.join(RESULT_PATH, f"groups_avg{age_suffix}.pickle"), "wb"
     ) as file:
         pickle.dump(groups_avg, file)
+
     with open(
         os.path.join(RESULT_PATH, f"groups_names{age_suffix}.pickle"), "wb"
     ) as file:
