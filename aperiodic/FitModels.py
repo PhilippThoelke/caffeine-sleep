@@ -10,7 +10,7 @@ import pickle
 
 
 DATA_PATH = "data/raw_eeg200/"
-RESULTS_PATH = "results/final/fooof200/"
+RESULTS_PATH = "results/fooof200/"
 STAGES = ["NREM", "REM"]
 
 
