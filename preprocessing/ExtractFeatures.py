@@ -40,9 +40,7 @@ psd = True
 psd_uncorrected = True
 sampEn = True
 specShanEn = True
-specShanEn_uncorrected = True
 specSampEn = True
-specSampEn_uncorrected = True
 dfa = True
 oneOverF = True
 lziv = True
@@ -103,12 +101,8 @@ while len(subject_ids) > len(done_subjects):
             create_folder("SampEn", subject_path)
         if specShanEn:
             create_folder("SpecShanEn", subject_path)
-        if specShanEn_uncorrected:
-            create_folder("SpecShanEnUncorrected", subject_path)
         if specSampEn:
             create_folder("SpecSampEn", subject_path)
-        if specSampEn_uncorrected:
-            create_folder("SpecSampEnUncorrected", subject_path)
         if dfa:
             create_folder("DFA", subject_path)
         if oneOverF:
@@ -146,24 +140,12 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("SpecShanEn", subject_path)
-        if specShanEn_uncorrected:
-            if "SpecShanEnUncorrected" in features:
-                specShanEn_uncorrected_done = True
-            else:
-                finished = False
-                create_folder("SpecShanEnUncorrected", subject_path)
         if specSampEn:
             if "SpecSampEn" in features:
                 specSampEn_done = True
             else:
                 finished = False
                 create_folder("SpecSampEn", subject_path)
-        if specSampEn_uncorrected:
-            if "SpecSampEnUncorrected" in features:
-                specSampEn_uncorrected_done = True
-            else:
-                finished = False
-                create_folder("SpecSampEnUncorrected", subject_path)
         if dfa:
             if "DFA" in features:
                 dfa_done = True
@@ -277,42 +259,22 @@ while len(subject_ids) > len(done_subjects):
 
     if specShanEn and not specShanEn_done:
         feature = {}
-        print("Computing 1/f corrected spectral shannon entropy...", end="", flush=True)
-        for key, stage in stages.items():
-            feature[key] = spectral_entropy(
-                stage, method="shannon", remove_aperiodic=True
-            )
-        save_feature_dict("SpecShanEn", subject_path, feature)
-        print("done")
-
-    if specShanEn_uncorrected and not specShanEn_uncorrected_done:
-        feature = {}
         print("Computing spectral shannon entropy...", end="", flush=True)
         for key, stage in stages.items():
             feature[key] = spectral_entropy(
                 stage, method="shannon", remove_aperiodic=False
             )
-        save_feature_dict("SpecShanEnUncorrected", subject_path, feature)
+        save_feature_dict("SpecShanEn", subject_path, feature)
         print("done")
 
     if specSampEn and not specSampEn_done:
-        feature = {}
-        print("Computing 1/f corrected spectral sample entropy...", end="", flush=True)
-        for key, stage in stages.items():
-            feature[key] = spectral_entropy(
-                stage, method="sample", remove_aperiodic=True
-            )
-        save_feature_dict("SpecSampEn", subject_path, feature)
-        print("done")
-
-    if specSampEn_uncorrected and not specSampEn_uncorrected_done:
         feature = {}
         print("Computing spectral sample entropy...", end="", flush=True)
         for key, stage in stages.items():
             feature[key] = spectral_entropy(
                 stage, method="sample", remove_aperiodic=False
             )
-        save_feature_dict("SpecSampEnUncorrected", subject_path, feature)
+        save_feature_dict("SpecSampEn", subject_path, feature)
         print("done")
 
     if dfa and not dfa_done:
