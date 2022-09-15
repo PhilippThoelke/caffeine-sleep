@@ -27,6 +27,8 @@ FEATURES_PATH = f"data/Features{CAF_DOSE}"
 # if True, use a hypnogram to split the raw EEG data into sleep stages
 # if False, load data that is already split into sleep stages
 SPLIT_STAGES = False
+# keep only those stages in this list. Set to None to keep all sleep stages
+KEEP_STAGES = ["N1", "N2", "N3", "NREM", "REM"]
 # if None, don't filter the data. Otherwise, a tuple of (l_freq, h_freq)
 # is used to band-pass filter the data before feature extraction
 FILTER_RANGE = (0.5, 32)
@@ -212,6 +214,9 @@ while len(subject_ids) > len(done_subjects):
         )
         stages = load_pre_split_data(DATA_PATH, subject_id)
         print("done")
+
+    if KEEP_STAGES is not None:
+        stages = {stage: feat for stage, feat in stages.items() if stage in KEEP_STAGES}
 
     if NOTCH_FREQ is not None:
         print(
