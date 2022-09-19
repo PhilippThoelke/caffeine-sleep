@@ -286,15 +286,18 @@ if __name__ == "__main__":
     get_feature(data, "OneOverF")
     get_feature(data, "LZiv")
 
+    for stage in data.keys():
+        if stage not in STAGES:
+            del data[stage]
+            del groups[stage]
+            del names[stage]
+
     print("-------------------- Averaging features --------------------")
 
     data_avg = {}
     labels_avg = {}
     groups_avg = {}
     for stage, current in data.items():
-        if stage not in STAGES:
-            continue
-
         data_avg[stage] = {}
         labels_avg[stage] = []
         groups_avg[stage] = []
