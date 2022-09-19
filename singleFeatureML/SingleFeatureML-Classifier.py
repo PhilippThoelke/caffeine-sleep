@@ -49,7 +49,6 @@ if len(sys.argv) > 4:
     USE_AVERAGED_FEATURES = bool(int(sys.argv[4]))
 
 STAGES = ["NREM", "REM"]
-BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
 
 
 def get_classifier(name, **kwargs):
