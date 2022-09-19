@@ -2,7 +2,6 @@ from tqdm import tqdm
 import glob
 from os.path import join, exists
 import numpy as np
-from mne.filter import filter_data
 from scipy.signal import welch
 from fooof import FOOOF
 from joblib import Parallel, delayed
