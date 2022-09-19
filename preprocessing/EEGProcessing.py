@@ -3,6 +3,7 @@ import glob
 import numpy as np
 from scipy import signal, stats
 from fooof import FOOOF
+from fooof.sim.gen import gen_aperiodic
 from antropy import lziv_complexity, detrended_fluctuation
 from joblib import Parallel, delayed
 
@@ -90,7 +91,7 @@ def load_pre_split_data(path, subject_id):
 
 
 def power_spectral_density(
-    stage, bands=True, remove_aperiodic=True, frequency=256, fooof_freq_range=(0.5, 32)
+    stage, bands=True, remove_aperiodic=True, frequency=256, fooof_freq_range=(3, 32)
 ):
     """
     Computes the power spectral density for one sleep stage and (if bands is true) separates
@@ -123,21 +124,21 @@ def power_spectral_density(
         result = Parallel(n_jobs=-1)(
             delayed(_flat_spectrum)(freq, camp, fooof_freq_range) for camp in amp
         )
-        # extract frequency bins
-        freq = np.array([fm.freqs for fm in result]).reshape(
-            electrode_count, epoch_count, -1
-        )
         # extract amplitudes (set to NaN if FOOOF failed to fit the model)
         amp = np.array(
             [
                 (
-                    fm._spectrum_flat
+                    np.log10(amp[i]) - gen_aperiodic(freq, fm.aperiodic_params_)
                     if fm._spectrum_flat is not None
-                    else np.full_like(fm.freqs, float("nan"))
+                    else np.full(freq, float("nan"))
                 )
-                for fm in result
+                for i, fm in enumerate(result)
             ]
         ).reshape(electrode_count, epoch_count, -1)
+        # extract frequency bins
+        freq = np.array([freq for _ in result]).reshape(
+            electrode_count, epoch_count, -1
+        )
     else:
         # use full power spectrum
         amp = amp.transpose(0, 2, 1)
@@ -337,7 +338,7 @@ def _compute_1_over_f(f, p, freq_range):
     return fm.aperiodic_params_[-1]
 
 
-def fooof_1_over_f(stage, frequency=256, freq_range=[0.5, 32]):
+def fooof_1_over_f(stage, frequency=256, freq_range=[3, 32]):
     """
     Computes the 1/f activity (aperiodic component) using the FOOOF algorithm. The power spectrum
     is computed using Welch's method.
