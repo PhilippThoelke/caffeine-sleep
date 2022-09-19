@@ -130,7 +130,7 @@ def power_spectral_density(
                 (
                     np.log10(amp[i]) - gen_aperiodic(freq, fm.aperiodic_params_)
                     if fm._spectrum_flat is not None
-                    else np.full(freq, float("nan"))
+                    else np.full_like(freq, float("nan"))
                 )
                 for i, fm in enumerate(result)
             ]
