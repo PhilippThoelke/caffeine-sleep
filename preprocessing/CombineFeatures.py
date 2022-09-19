@@ -289,8 +289,6 @@ if __name__ == "__main__":
     for stage in data.keys():
         if stage not in STAGES:
             del data[stage]
-            del groups[stage]
-            del names[stage]
 
     print("-------------------- Averaging features --------------------")
 
