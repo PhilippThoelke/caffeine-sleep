@@ -21,7 +21,7 @@ def fooof_single_channel(freq, psd, freq_range):
 
 
 def fit_fooof(
-    stage, condition, sfreq=256, freq_range=(0.5, 32), channelwise=False, subject="*"
+    stage, condition, sfreq=256, freq_range=(3, 32), channelwise=False, subject="*"
 ):
     # load data
     paths = glob.glob(join(DATA_PATH, f"{subject}*{stage}*{condition}.npy"))
@@ -52,8 +52,8 @@ if __name__ == "__main__":
     sfreq = 256
     results = {}
     for stage in STAGES:
-        fm_caf = fit_fooof(stage, "CAF", sfreq=sfreq, channelwise=True, subject="*")
-        fm_plac = fit_fooof(stage, "PLAC", sfreq=sfreq, channelwise=True, subject="*")
+        fm_caf = fit_fooof(stage, "CAF", sfreq=sfreq, channelwise=True, subject="11038*")
+        fm_plac = fit_fooof(stage, "PLAC", sfreq=sfreq, channelwise=True, subject="11038*")
         results[stage] = {"CAF": fm_caf, "PLAC": fm_plac}
 
     with open(join(RESULTS_PATH, f"fooof.pkl"), "wb") as f:
