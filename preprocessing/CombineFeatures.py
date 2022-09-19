@@ -286,7 +286,7 @@ if __name__ == "__main__":
     get_feature(data, "OneOverF")
     get_feature(data, "LZiv")
 
-    for stage in data.keys():
+    for stage in list(data.keys()):
         if stage not in STAGES:
             del data[stage]
 
