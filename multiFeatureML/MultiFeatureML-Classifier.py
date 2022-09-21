@@ -30,6 +30,19 @@ if len(sys.argv) > 3:
 
 DATA_PATH = f"data/Features{CAF_DOSE}/Combined"
 RESULTS_PATH = f"results/multiML{CAF_DOSE}"
+FEATURES = [
+    "PSD_delta",
+    "PSD_theta",
+    "PSD_alpha",
+    "PSD_sigma",
+    "PSD_beta",
+    "SpecShanEn",
+    "SampEn",
+    "SpecSampEn",
+    "LZiv",
+    "DFA",
+    "OneOverF",
+]
 
 STAGES = ["NREM", "REM"]
 STAGE = STAGES[STAGE_INDEX]
@@ -69,6 +82,9 @@ print(
 x = []
 # create a sample matrix from the data dict
 for feature in data.keys():
+    if feature not in FEATURES:
+        print(f"skipping feature {feature}")
+        continue
     x.append(data[feature])
 x = np.concatenate(x, axis=1)
 # replace NaNs by 0
