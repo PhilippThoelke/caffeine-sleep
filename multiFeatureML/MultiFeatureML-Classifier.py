@@ -70,9 +70,13 @@ with open(os.path.join(DATA_PATH, f"labels_avg{age_suffix}.pickle"), "rb") as fi
 with open(os.path.join(DATA_PATH, f"groups_avg{age_suffix}.pickle"), "rb") as file:
     groups = pickle.load(file)[STAGE]
 
-# generate a feature name vector WITH SpecPermEn
+# generate a feature name vector
 feature_names = np.concatenate(
-    [[feature + "-" + str(i) for i in range(20)] for feature in data.keys()]
+    [
+        [feature + "-" + str(i) for i in range(20)]
+        for feature in data.keys()
+        if feature in FEATURES
+    ]
 )
 
 print(
