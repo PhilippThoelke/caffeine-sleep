@@ -2,6 +2,10 @@ import os
 import glob
 import numpy as np
 from scipy import signal, stats
+from fooof import FOOOF
+from fooof.sim.gen import gen_aperiodic
+from antropy import lziv_complexity, detrended_fluctuation
+from joblib import Parallel, delayed
 
 
 def load_data(data_path, hypnogram_path, dtype=None):
@@ -86,64 +90,20 @@ def load_pre_split_data(path, subject_id):
     return data
 
 
-def _extract_frequency_power_bands(freqs, values, relative=False):
-    """
-    Extracts power of six frequency bands from a spectral distribution.
-
-    Args:
-        freqs: vector containing the discrete frequencies
-        values: vector containing the spectral distribution
-        relative: boolean indicating if the power bands should be a probability distribution or absolute sums
-
-    Returns:
-        list containing the power bands (delta, theta, alpha, sigma, beta, low gamma)
-    """
-    if relative:
-        total = np.sum(values)
-    else:
-        total = 1
-
-    return [
-        np.sum(values[(freqs >= 0.3) & (freqs < 4)]) / total,
-        np.sum(values[(freqs >= 4) & (freqs < 8)]) / total,
-        np.sum(values[(freqs >= 8) & (freqs < 12)]) / total,
-        np.sum(values[(freqs >= 12) & (freqs < 16)]) / total,
-        np.sum(values[(freqs >= 16) & (freqs < 32)]) / total,
-        np.sum(values[(freqs >= 32) & (freqs <= 50)]) / total,
-    ]
-
-
-def _power_spectral_density_single_epoch(epoch, num_segments=6, frequency=256):
-    """
-    Computes the power spectral density for a single epoch with Welch's method.
-
-    Args:
-        epoch: vector with EEG data from one epoch
-        num_windows: number of segments used in Welch's method
-        frequency: sampling frequency of the EEG in Hz
-
-    Returns:
-        frequency distribution
-        power spectral density
-    """
-    return signal.welch(
-        epoch,
-        fs=frequency,
-        nperseg=len(epoch) // num_segments,
-        noverlap=0,
-        window="hamming",
-    )
-
-
-def power_spectral_density(stage, bands=True, relative=False):
+def power_spectral_density(
+    stage, bands=True, remove_aperiodic=True, frequency=256, fooof_freq_range=(3, 32)
+):
     """
     Computes the power spectral density for one sleep stage and (if bands is true) separates
-    the spectrum into frequency bands.
+    the spectrum into frequency bands. The power spectrum will be corrected for the 1/f-like
+    aperiodic component.
 
     Args:
         stage: EEG data from one sleep stage (electrodes x epoch steps x epochs)
         bands: boolean indicating if PSD for frequency bands or complete PSD should be returned (changes output shape)
-        relative: boolean idicating if the frequency power bands should be a probability distribution
+        remove_aperiodic: whether to remove the aperiodic component from the power spectrum
+        frequency: sampling frequency of the EEG
+        freq_range: frequency range to fit FOOOF on
 
     Returns:
         power spectral density (electrodes x epochs x amplitudes) or (electrodes x epochs x bands)
@@ -151,32 +111,72 @@ def power_spectral_density(stage, bands=True, relative=False):
     electrode_count = stage.shape[0]
     epoch_count = stage.shape[2]
 
-    psd = []
-    for electrode in range(electrode_count):
-        # add a row for each electrode
-        psd.append([])
+    def _flat_spectrum(f, a, freq_range):
+        fm = FOOOF(max_n_peaks=5, verbose=False)
+        fm.fit(f, a, freq_range=freq_range)
+        return fm
 
-        for epoch in range(epoch_count):
-            # calculate PSD for the current epoch of the current electrode
-            freq, amp = _power_spectral_density_single_epoch(stage[electrode, :, epoch])
+    freq, amp = signal.welch(stage, frequency, nperseg=4 * frequency, axis=1)
 
-            # add a column for each epoch
-            psd[-1].append([])
-
-            if bands:
-                # add list with the power band values as the third dimension
-                power_bands = _extract_frequency_power_bands(
-                    freq, amp, relative=relative
+    if remove_aperiodic:
+        # fit FOOOF model to the power spectra
+        amp = amp.transpose(0, 2, 1).reshape(-1, freq.shape[0])
+        result = Parallel(n_jobs=-1)(
+            delayed(_flat_spectrum)(freq, camp, fooof_freq_range) for camp in amp
+        )
+        # extract amplitudes (set to NaN if FOOOF failed to fit the model)
+        amp = np.array(
+            [
+                (
+                    np.log10(amp[i]) - gen_aperiodic(freq, fm.aperiodic_params_)
+                    if fm._spectrum_flat is not None
+                    else np.full_like(freq, float("nan"))
                 )
-                psd[-1][-1] = power_bands
-            else:
-                # add amplitude array as the third dimension
-                psd[-1][-1] = amp
+                for i, fm in enumerate(result)
+            ]
+        ).reshape(electrode_count, epoch_count, -1)
+        # extract frequency bins
+        freq = np.array([freq for _ in result]).reshape(
+            electrode_count, epoch_count, -1
+        )
+    else:
+        # use full power spectrum
+        amp = amp.transpose(0, 2, 1)
+        freq = np.broadcast_arrays(freq[None, None], amp)[0]
 
-    return np.array(psd)
+    if not bands:
+        return amp
+
+    result = np.empty((electrode_count, epoch_count, 5))
+    result[:, :, 0] = (
+        amp[(freq >= 0.5) & (freq < 4)]
+        .reshape(electrode_count, epoch_count, -1)
+        .sum(axis=-1)
+    )
+    result[:, :, 1] = (
+        amp[(freq >= 4) & (freq < 8)]
+        .reshape(electrode_count, epoch_count, -1)
+        .sum(axis=-1)
+    )
+    result[:, :, 2] = (
+        amp[(freq >= 8) & (freq < 12)]
+        .reshape(electrode_count, epoch_count, -1)
+        .sum(axis=-1)
+    )
+    result[:, :, 3] = (
+        amp[(freq >= 12) & (freq < 16)]
+        .reshape(electrode_count, epoch_count, -1)
+        .sum(axis=-1)
+    )
+    result[:, :, 4] = (
+        amp[(freq >= 16) & (freq < 32)]
+        .reshape(electrode_count, epoch_count, -1)
+        .sum(axis=-1)
+    )
+    return result
 
 
-def shannon_entropy(signal, normalize=True):
+def shannon_entropy(signal, normalize=True, eps=1e-6):
     """
     Computes the shannon entropy for a single epoch.
 
@@ -187,53 +187,17 @@ def shannon_entropy(signal, normalize=True):
     Returns:
         shannon entropy as float
     """
+    if (signal <= 0).any():
+        # shift the signal to not include negative values
+        signal = signal - signal.min() + eps
     # normalize the signal to a probability distribution
-    signal /= np.sum(signal)
+    signal /= signal.sum()
     # calculate shannon entropy
     entropy = -np.sum(signal * np.log(signal))
 
     if normalize:
         # normalize entropy to range between 0 and 1
         entropy /= np.log(len(signal))
-    return entropy
-
-
-def permutation_entropy(signal, order=3, delay=1, normalize=True):
-    """
-    Computes the permutation entropy for a single epoch.
-
-    Args:
-        signal: vector containing the signal over which the entropy is computed
-        order: permutation window length
-        delay: step between the permutation windows
-        normalize: boolean indicating if the entropy value should be normalized to the range between 0 and 1
-
-    returns:
-        permutation entropy as float
-    """
-    window_count = len(signal) - (order - 1) * delay
-    # partition the signal into windows of length order with step size delay
-    windows = np.array(
-        [signal[i * delay : i * delay + window_count] for i in range(order)]
-    ).T
-
-    # calculate element ranks for each window in ascending order
-    # same values become distinct ranks corresponding to the order of appearance
-    # e.g. window [4, 6, 1] becomes [1, 2, 0]
-    ranks = np.array(
-        [stats.rankdata(window, method="ordinal") - 1 for window in windows]
-    )
-    # get relative frequency of each unique rank in the data
-    rel_permutation_counts = (
-        np.unique(ranks, axis=0, return_counts=True)[1] / ranks.shape[0]
-    )
-
-    # calculate permutation entropy
-    entropy = -np.sum([perm * np.log2(perm) for perm in rel_permutation_counts])
-
-    if normalize:
-        # normalize entropy to range between 0 and 1
-        entropy /= np.log2(np.math.factorial(order))
     return entropy
 
 
@@ -311,60 +275,20 @@ def _distance(x1, x2):
     return np.max(np.abs(x1 - x2))
 
 
-def sample_entropy_slow(signal, dimension=2, tolerance=0.2):
-    """
-    Computes the sample entropy for a single epoch.
-
-    Args:
-        signal: vector containing the signal over which the entropy is computed
-        dimension: length of the templates which are used during calculation
-        tolerance: the maximum distance between two windows to allow a match
-
-    Returns:
-        sample entropy as float
-    """
-    tolerance = tolerance * np.std(signal)
-
-    # generate windows with length dimension + 1 over the signal
-    embeddings = np.array(
-        [signal[i : i + dimension + 1] for i in range(len(signal) - dimension)]
-    )
-    # compute number of matches for windows with size dimension and size dimension + 1
-    matches = np.sum(
-        [
-            np.sum(
-                [
-                    [
-                        _distance(template[:-1], embedding[:-1]) <= tolerance,
-                        _distance(template, embedding) <= tolerance,
-                    ]
-                    for j, embedding in enumerate(embeddings)
-                    if i != j
-                ],
-                axis=0,
-            )
-            for i, template in enumerate(embeddings)
-        ],
-        axis=0,
-    )
-
-    # return negative ln of # matches for size dimension + 1 divided by # matches for size dimension
-    return -np.log(matches[1] / matches[0])
-
-
-def spectral_entropy(stage, method="shannon"):
+def spectral_entropy(stage, method="shannon", remove_aperiodic=False):
     """
     Computes the spectral entropy for one sleep stage using the specified entropy method (permutation or shannon).
 
     Args:
         stage: EEG data over which the spectral entropy should be computed (electrodes x epoch steps x epochs)
         method: string indicating which entropy method to be used (shannon, permutation or sample)
+        remove_aperiodic: whether to use the 1/f corrected or full power spectrum
 
     Returns:
         spectral entropy of the sleep stage (electrodes x epochs)
     """
     # compute power spectral density
-    psd = power_spectral_density(stage, bands=False)
+    psd = power_spectral_density(stage, bands=False, remove_aperiodic=remove_aperiodic)
 
     electrode_count = psd.shape[0]
     epoch_count = psd.shape[1]
@@ -372,20 +296,90 @@ def spectral_entropy(stage, method="shannon"):
     spec_entropy = np.empty((electrode_count, epoch_count))
     for electrode in range(electrode_count):
         for epoch in range(epoch_count):
+            curr_signal = psd[electrode, epoch]
+            curr_signal = curr_signal[~np.isnan(curr_signal)]
+
             if method.lower() == "shannon":
                 # get PSD shannon entropy for the current electrode and epoch
                 spec_entropy[electrode, epoch] = shannon_entropy(
-                    psd[electrode, epoch], normalize=True
-                )
-            elif method.lower() == "permutation":
-                # get PSD permutation entropy for the current electrode and epoch
-                spec_entropy[electrode, epoch] = permutation_entropy(
-                    psd[electrode, epoch], normalize=True
+                    curr_signal, normalize=True
                 )
             elif method.lower() == "sample":
                 # get PSD sample entropy for the current electrode and epoch
-                spec_entropy[electrode, epoch] = sample_entropy(psd[electrode, epoch])
+                spec_entropy[electrode, epoch] = sample_entropy(curr_signal)
             else:
                 # unknown entropy method
                 raise NotImplementedError(f'Entropy type "{method}" is unknown')
     return spec_entropy
+
+
+def compute_dfa(stage):
+    """
+    Compute DFA slope exponent.
+
+    Args:
+        stage: raw EEG data (electrodes x epoch steps x epochs)
+
+    Returns:
+        alpha exponent from DFA of the EEG (electrodes x epochs)
+    """
+    hurst = np.empty((stage.shape[0], stage.shape[2]))
+    for elec in range(stage.shape[0]):
+        hurst[elec] = Parallel(n_jobs=-1)(
+            delayed(detrended_fluctuation)(stage[elec, :, epoch])
+            for epoch in range(stage.shape[2])
+        )
+    return hurst
+
+
+def _compute_1_over_f(f, p, freq_range):
+    fm = FOOOF(max_n_peaks=5, verbose=False)
+    fm.fit(f, p, freq_range=freq_range)
+    return fm.aperiodic_params_[-1]
+
+
+def fooof_1_over_f(stage, frequency=256, freq_range=[3, 32]):
+    """
+    Computes the 1/f activity (aperiodic component) using the FOOOF algorithm. The power spectrum
+    is computed using Welch's method.
+
+    Args:
+        stage: raw EEG data (electrodes x epoch steps x epochs)
+        frequency: the sampling frequency of the EEG
+        freq_range: the frequency range to fit FOOOF on
+
+    Returns:
+        1/f activity of the EEG (electrodes x epochs)
+    """
+    f, psd = signal.welch(stage, frequency, nperseg=4 * frequency, axis=1)
+    oof = np.empty((stage.shape[0], stage.shape[2]))
+    for elec in range(stage.shape[0]):
+        oof[elec] = Parallel(n_jobs=-1)(
+            delayed(_compute_1_over_f)(f, psd[elec, :, epoch], freq_range)
+            for epoch in range(stage.shape[2])
+        )
+    return oof
+
+
+def _compute_lziv(epoch):
+    return lziv_complexity((epoch > np.median(epoch)).astype(int), normalize=True)
+
+
+def compute_lziv(stage):
+    """
+    Computes the Lempel-Ziv complexity.
+
+    Args:
+        stage: raw EEG data (electrodes x epoch steps x epochs)
+
+    Returns:
+        Lempel-Ziv complexity of the EEG (electrodes x epochs)
+    """
+    lziv = np.empty((stage.shape[0], stage.shape[2]))
+    for channel in range(stage.shape[0]):
+        result = Parallel(n_jobs=-1)(
+            delayed(_compute_lziv)(stage[channel, :, epoch])
+            for epoch in range(stage.shape[2])
+        )
+        lziv[channel] = result
+    return lziv

@@ -19,17 +19,33 @@ RESULT_PATH = f"data/Features{CAF_DOSE}/Combined"
 SUBJECTS_PATH = f"data/CAF_{CAF_DOSE}_Inventaire.csv"
 # directory containing the sample_differences file from ComputeSampleDifferences.py
 DATA_PATH = "data/"
+#  if true, make sure that every subject has the same number of epochs per sleep stage
+BALANCE_EPOCHS = False
+# if true, leave the features raw and don't apply a z-transform
+NORMALIZE_FEATURES = True
+# percentage of subjects to ignore when balancing (removes subjects with lowest number of sleep epochs)
+DROP_SUBJECTS_PCT = 0
+# if True, also saves unaveraged (per-epoch) features
+SAVE_UNAVERAGED = False
+
+if BALANCE_EPOCHS:
+    RESULT_PATH = RESULT_PATH + "_balanced"
+if not NORMALIZE_FEATURES:
+    RESULT_PATH = RESULT_PATH + "_no_norm"
 
 # which frequency bands will be extracted
-BANDS = ["delta", "theta", "alpha", "sigma", "beta", "low gamma"]
+BANDS = ["delta", "theta", "alpha", "sigma", "beta"]
+# which sleep stages to keep
+STAGES = ["NREM", "REM"]
 
 
-def get_psd_labels_groups(data_dict):
-    print("PSD...")
+def get_psd_labels_groups(data_dict, uncorrected=False):
+    print(f"{'Uncorrected ' if uncorrected else ''}PSD...")
+    feature_name = "PSDUncorrected" if uncorrected else "PSD"
 
     # get the labels, load the PSD feature and load the hypnograms
     subject_labels = Loader.load_labels(CAF_DOSE, SUBJECTS_PATH)
-    psd = Loader.load_feature("PSD", CAF_DOSE, FEATURES_PATH)
+    psd = Loader.load_feature(feature_name, CAF_DOSE, FEATURES_PATH)
 
     meta_info = pd.read_csv(SUBJECTS_PATH, index_col=0)
 
@@ -136,17 +152,19 @@ def get_psd_labels_groups(data_dict):
             if stage not in data_dict:
                 data_dict[stage] = dict()
             # add all power bands to the feature dictionary for the current stage
-            data_dict[stage][f"PSD_{band}"] = concatenated[:, :, i].T
+            data_dict[stage][f"{feature_name}_{band}"] = concatenated[:, :, i].T
 
             if stage == "AWA":
                 if "AWSL" not in data_dict:
                     data_dict["AWSL"] = dict()
-                data_dict["AWSL"][f"PSD_{band}"] = concatenated_awsl[:, :, i].T
+                data_dict["AWSL"][f"{feature_name}_{band}"] = concatenated_awsl[
+                    :, :, i
+                ].T
 
     if "N1" in data_dict:
         data_dict["NREM"] = dict()
         for band in BANDS:
-            ft = f"PSD_{band}"
+            ft = f"{feature_name}_{band}"
             # combine N1, N2 and N3 into NREM
             nrem = [data_dict["N1"][ft], data_dict["N2"][ft], data_dict["N3"][ft]]
             # add current power band to the NREM features dictionary
@@ -228,13 +246,21 @@ def normalize(data_dict, groups_dict):
             for group in np.unique(groups_dict[stage]):
                 mask = groups_dict[stage] == group
                 curr = data_dict[stage][feature][mask]
-                data_dict[stage][feature][mask] = (curr - curr.mean()) / curr.std()
+
+                mean, std = np.nanmean(curr), np.nanstd(curr)
+                data_dict[stage][feature][mask] = (curr - mean) / std
 
 
 def normalize_avg(data_avg, groups_avg, data, groups):
     # average data stage- and feature-wise
     for stage in data_avg.keys():
-        print(stage)
+        num_epochs = [
+            (groups[stage] == group).sum() for group in np.unique(groups_avg[stage])
+        ]
+        print(
+            f"{stage}: averaging using {np.mean(num_epochs):.2f} "
+            f"epochs on average (min: {np.min(num_epochs)})"
+        )
         for feature in data_avg[stage].keys():
             for group in np.unique(groups_avg[stage]):
                 mask_avg = groups_avg[stage] == group
@@ -242,21 +268,27 @@ def normalize_avg(data_avg, groups_avg, data, groups):
 
                 curr_avg = data_avg[stage][feature][mask_avg]
                 curr = data[stage][feature][mask]
-                data_avg[stage][feature][mask_avg] = (
-                    curr_avg - curr.mean()
-                ) / curr.std()
+
+                mean, std = np.nanmean(curr), np.nanstd(curr)
+                data_avg[stage][feature][mask_avg] = (curr_avg - mean) / std
 
 
 if __name__ == "__main__":
     data = dict()
 
     print("-------------------- Concatenating features --------------------")
-    labels, groups, names = get_psd_labels_groups(data)
+    labels, groups, names = get_psd_labels_groups(data, uncorrected=False)
+    get_psd_labels_groups(data, uncorrected=True)
     get_feature(data, "SpecShanEn")
     get_feature(data, "SampEn")
     get_feature(data, "SpecSampEn")
-    get_feature(data, "PermEn")
-    get_feature(data, "SpecPermEn")
+    get_feature(data, "DFA")
+    get_feature(data, "OneOverF")
+    get_feature(data, "LZiv")
+
+    for stage in list(data.keys()):
+        if stage not in STAGES:
+            del data[stage]
 
     print("-------------------- Averaging features --------------------")
 
@@ -268,6 +300,41 @@ if __name__ == "__main__":
         labels_avg[stage] = []
         groups_avg[stage] = []
         print(stage)
+
+        if BALANCE_EPOCHS:
+            sample_mins = []
+            for i in range(len(np.unique(groups[stage]))):
+                plac_count = current[list(current.keys())[0]][
+                    (groups[stage] == i) & (labels[stage] == 0)
+                ].shape[0]
+                caf_count = current[list(current.keys())[0]][
+                    (groups[stage] == i) & (labels[stage] == 1)
+                ].shape[0]
+                if plac_count == 0 or caf_count == 0:
+                    continue
+                sample_mins.append(min(plac_count, caf_count))
+            sample_mins = int(np.percentile(sample_mins, DROP_SUBJECTS_PCT))
+
+            permutations = {}
+            for i in range(len(np.unique(groups[stage]))):
+                permutations[i] = {
+                    0: np.random.permutation(
+                        max(
+                            sample_mins,
+                            current[list(current.keys())[0]][
+                                (groups[stage] == i) & (labels[stage] == 0)
+                            ].shape[0],
+                        )
+                    )[:sample_mins],
+                    1: np.random.permutation(
+                        max(
+                            sample_mins,
+                            current[list(current.keys())[0]][
+                                (groups[stage] == i) & (labels[stage] == 1)
+                            ].shape[0],
+                        )
+                    )[:sample_mins],
+                }
 
         added = set()
         dropped = []
@@ -287,9 +354,17 @@ if __name__ == "__main__":
                         )
                     continue
 
+                if BALANCE_EPOCHS:
+                    if len(data_0) < len(permutations[i][0]) or len(data_1) < len(
+                        permutations[i][1]
+                    ):
+                        continue
+                    data_0 = data_0[permutations[i][0]]
+                    data_1 = data_1[permutations[i][1]]
+
                 added.add(i)
-                data_avg[stage][feature].append(data_0.mean(axis=0))
-                data_avg[stage][feature].append(data_1.mean(axis=0))
+                data_avg[stage][feature].append(np.nanmean(data_0, axis=0))
+                data_avg[stage][feature].append(np.nanmean(data_1, axis=0))
 
             data_avg[stage][feature] = np.array(data_avg[stage][feature])
 
@@ -300,9 +375,10 @@ if __name__ == "__main__":
         labels_avg[stage] = np.array(labels_avg[stage])
         groups_avg[stage] = np.array(groups_avg[stage])
 
-    print("-------------------- Normalizing samples --------------------")
-    normalize_avg(data_avg, groups_avg, data, groups)
-    normalize(data, groups)
+    if NORMALIZE_FEATURES:
+        print("-------------------- Normalizing samples --------------------")
+        normalize_avg(data_avg, groups_avg, data, groups)
+        normalize(data, groups)
 
     print("-------------------- Saving data --------------------")
 
@@ -315,14 +391,19 @@ if __name__ == "__main__":
         else:
             age_suffix += f"-t{MAX_AGE}"
 
-    with open(os.path.join(RESULT_PATH, f"data{age_suffix}.pickle"), "wb") as file:
-        pickle.dump(data, file)
+    if SAVE_UNAVERAGED:
+        with open(os.path.join(RESULT_PATH, f"data{age_suffix}.pickle"), "wb") as file:
+            pickle.dump(data, file)
 
-    with open(os.path.join(RESULT_PATH, f"labels{age_suffix}.pickle"), "wb") as file:
-        pickle.dump(labels, file)
+        with open(
+            os.path.join(RESULT_PATH, f"labels{age_suffix}.pickle"), "wb"
+        ) as file:
+            pickle.dump(labels, file)
 
-    with open(os.path.join(RESULT_PATH, f"groups{age_suffix}.pickle"), "wb") as file:
-        pickle.dump(groups, file)
+        with open(
+            os.path.join(RESULT_PATH, f"groups{age_suffix}.pickle"), "wb"
+        ) as file:
+            pickle.dump(groups, file)
 
     with open(os.path.join(RESULT_PATH, f"data_avg{age_suffix}.pickle"), "wb") as file:
         pickle.dump(data_avg, file)
@@ -336,6 +417,11 @@ if __name__ == "__main__":
         os.path.join(RESULT_PATH, f"groups_avg{age_suffix}.pickle"), "wb"
     ) as file:
         pickle.dump(groups_avg, file)
+
+    with open(
+        os.path.join(RESULT_PATH, f"groups_names{age_suffix}.pickle"), "wb"
+    ) as file:
+        pickle.dump(names, file)
 
     print("Done!")
 

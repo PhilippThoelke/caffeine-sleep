@@ -34,12 +34,17 @@ def load_feature(feature_name, caf_dose, features_path):
                 for p in glob.glob(os.path.join(path, "*.npy"))
             ]
         )
+        if len(stages) == 0:
+            print(
+                f"The following directory doesn't contain features: {path}. "
+                "This will likely cause an error down the line"
+            )
         for stage in stages:
             if stage not in feature:
                 feature[stage] = {}
             # load the file containing the data for the current stage and subject
             feature[stage][subject_id] = np.load(
-                os.path.join(path, f"{feature_name}_{stage}.npy")
+                os.path.join(path, f"{feature_name}_{stage}.npy"), allow_pickle=True
             )
     return feature
 
@@ -53,7 +58,7 @@ def load_labels(caf_dose, subjects_path):
         subjects_path: path to the directory where the subject metadata csv file is stored
 
     Returns:
-        dictionary with subject ids as keys and the label as a value (0: caffeine, 1: placebo)
+        dictionary with subject ids as keys and the label as a value (0: placebo, 1: caffeine)
     """
     # read metadata csv file
     subjects = pd.read_csv(subjects_path, index_col=0)[["Subject_id", "CAF"]]
