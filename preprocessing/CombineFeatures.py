@@ -1,10 +1,10 @@
-import Loader
-import re
 import os
 import pickle
+import re
+
+import Loader
 import numpy as np
 import pandas as pd
-
 
 # caffeine dose: 200 or 400
 CAF_DOSE = 200
@@ -20,7 +20,9 @@ SUBJECTS_PATH = f"data/CAF_{CAF_DOSE}_Inventaire.csv"
 # directory containing the sample_differences file from ComputeSampleDifferences.py
 DATA_PATH = "data/"
 #  if true, make sure that every subject has the same number of epochs per sleep stage
-BALANCE_EPOCHS = False
+BALANCE_STAGE_EPOCHS = False
+#  if true, make sure that every condition has the same number of epochs per subject
+BALANCE_CONDITION_EPOCHS = False
 # if true, leave the features raw and don't apply a z-transform
 NORMALIZE_FEATURES = True
 # percentage of subjects to ignore when balancing (removes subjects with lowest number of sleep epochs)
@@ -28,8 +30,10 @@ DROP_SUBJECTS_PCT = 0
 # if True, also saves unaveraged (per-epoch) features
 SAVE_UNAVERAGED = False
 
-if BALANCE_EPOCHS:
+if BALANCE_STAGE_EPOCHS:
     RESULT_PATH = RESULT_PATH + "_balanced"
+if BALANCE_CONDITION_EPOCHS:
+    RESULT_PATH = RESULT_PATH + "_condbalanced"
 if not NORMALIZE_FEATURES:
     RESULT_PATH = RESULT_PATH + "_no_norm"
 
@@ -38,6 +42,13 @@ BANDS = ["delta", "theta", "alpha", "sigma", "beta"]
 # which sleep stages to keep
 STAGES = ["NREM", "REM"]
 
+if BALANCE_STAGE_EPOCHS and BALANCE_CONDITION_EPOCHS:
+    raise ValueError(
+        "BALANCE_STAGE_EPOCHS and BALANCE_CONDITION_EPOCHS cannot both be True"
+    )
+
+if not os.path.exists(RESULT_PATH):
+    os.makedirs(RESULT_PATH)
 
 def get_psd_labels_groups(data_dict, uncorrected=False):
     print(f"{'Uncorrected ' if uncorrected else ''}PSD...")
@@ -301,7 +312,7 @@ if __name__ == "__main__":
         groups_avg[stage] = []
         print(stage)
 
-        if BALANCE_EPOCHS:
+        if BALANCE_STAGE_EPOCHS:
             sample_mins = []
             for i in range(len(np.unique(groups[stage]))):
                 plac_count = current[list(current.keys())[0]][
@@ -336,6 +347,42 @@ if __name__ == "__main__":
                     )[:sample_mins],
                 }
 
+        if BALANCE_CONDITION_EPOCHS:
+            sample_mins = {}
+            for i in range(len(np.unique(groups[stage]))):
+                plac_count = current[list(current.keys())[0]][
+                    (groups[stage] == i) & (labels[stage] == 0)
+                ].shape[0]
+                caf_count = current[list(current.keys())[0]][
+                    (groups[stage] == i) & (labels[stage] == 1)
+                ].shape[0]
+                if plac_count == 0 or caf_count == 0:
+                    raise ValueError(
+                        f"Group {i} in stage {stage} has only one condition!"
+                    )
+                sample_mins[i] = min(plac_count, caf_count)
+
+            permutations = {}
+            for i in range(len(np.unique(groups[stage]))):
+                permutations[i] = {
+                    0: np.random.permutation(
+                        max(
+                            sample_mins[i],
+                            current[list(current.keys())[0]][
+                                (groups[stage] == i) & (labels[stage] == 0)
+                            ].shape[0],
+                        )
+                    )[:sample_mins[i]],
+                    1: np.random.permutation(
+                        max(
+                            sample_mins[i],
+                            current[list(current.keys())[0]][
+                                (groups[stage] == i) & (labels[stage] == 1)
+                            ].shape[0],
+                        )
+                    )[:sample_mins[i]],
+                }
+
         added = set()
         dropped = []
         for feature in current.keys():
@@ -354,7 +401,7 @@ if __name__ == "__main__":
                         )
                     continue
 
-                if BALANCE_EPOCHS:
+                if BALANCE_STAGE_EPOCHS or BALANCE_CONDITION_EPOCHS:
                     if len(data_0) < len(permutations[i][0]) or len(data_1) < len(
                         permutations[i][1]
                     ):
