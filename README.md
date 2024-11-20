@@ -2,7 +2,7 @@
 This repository contains the code for the analysis of sleep-EEG recorded for two conditions. In the first condition subjects ingested 200mg of caffeine before going to sleep. The second condition consisted of a placebo pill, otherwise following the same procedure. The same dataset has previously been explored by [Drapeau et al. (2006)](https://doi.org/10.1111/j.1365-2869.2006.00518.x) and [Robillard et al. (2015)](https://doi.org/10.1177%2F0269881115575535), utilizing traditional statistical analysis of several sleep-related variables. Here we implemented a data-driven approach to the analysis, extending traditional statistics with machine-learning based exploration of the data.
 
 > [!TIP]
-> A preprint about this work can be found here: [https://www.biorxiv.org/content/10.1101/2024.05.27.596056](https://www.biorxiv.org/content/10.1101/2024.05.27.596056)
+> A preprint about this work can be found here: [biorxiv.org/content/10.1101/2024.05.27.596056](https://www.biorxiv.org/content/10.1101/2024.05.27.596056)
 
 ## Installation
 Clone this repository and install the dependencies from `requirements.txt`:
