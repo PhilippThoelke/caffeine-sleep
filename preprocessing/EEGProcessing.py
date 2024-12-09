@@ -1,11 +1,13 @@
-import os
 import glob
+import os
+
 import numpy as np
-from scipy import signal, stats
+from antropy import detrended_fluctuation, lziv_complexity
 from fooof import FOOOF
 from fooof.sim.gen import gen_aperiodic
-from antropy import lziv_complexity, detrended_fluctuation
 from joblib import Parallel, delayed
+from mne.filter import filter_data
+from scipy import signal
 
 
 def load_data(data_path, hypnogram_path, dtype=None):
@@ -313,23 +315,44 @@ def spectral_entropy(stage, method="shannon", remove_aperiodic=False):
     return spec_entropy
 
 
-def compute_dfa(stage):
+def compute_dfa(stage, fs=256, envelope=False):
     """
     Compute DFA slope exponent.
 
     Args:
         stage: raw EEG data (electrodes x epoch steps x epochs)
+        fs: sampling frequency in Hz
+        envelope: boolean indicating if the DFA should be computed on the envelope of the signal
 
     Returns:
-        alpha exponent from DFA of the EEG (electrodes x epochs)
+        alpha exponent from DFA of the EEG (electrodes x epochs) or (electrodes x epochs x bands)
     """
-    hurst = np.empty((stage.shape[0], stage.shape[2]))
-    for elec in range(stage.shape[0]):
-        hurst[elec] = Parallel(n_jobs=-1)(
-            delayed(detrended_fluctuation)(stage[elec, :, epoch])
-            for epoch in range(stage.shape[2])
-        )
-    return hurst
+    if envelope:
+        bands = [(0.5, 4), (4, 8), (8, 12), (12, 16), (16, 32), (0.5, 32)]
+        dfa = np.empty((stage.shape[0], stage.shape[2], len(bands)))
+
+        for band_idx, (low, high) in enumerate(bands):
+            # narrow-band filtering
+            stage_filt = filter_data(
+                stage.transpose(0, 2, 1), fs, low, high, n_jobs=-1, verbose="CRITICAL"
+            ).transpose(0, 2, 1)
+            # compute envelope
+            envelope = np.abs(signal.hilbert(stage_filt, axis=1))
+
+            for elec in range(stage.shape[0]):
+                dfa[elec, :, band_idx] = Parallel(n_jobs=-1)(
+                    delayed(detrended_fluctuation)(envelope[elec, :, epoch])
+                    for epoch in range(stage.shape[2])
+                )
+        return dfa
+    else:
+        hurst = np.empty((stage.shape[0], stage.shape[2]))
+        for elec in range(stage.shape[0]):
+            hurst[elec] = Parallel(n_jobs=-1)(
+                delayed(detrended_fluctuation)(stage[elec, :, epoch])
+                for epoch in range(stage.shape[2])
+            )
+        return hurst
 
 
 def _compute_1_over_f(f, p, freq_range):

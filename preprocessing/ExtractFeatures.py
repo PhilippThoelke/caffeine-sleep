@@ -1,20 +1,21 @@
-import os
 import glob
+import os
+
 import numpy as np
 import pandas as pd
-from mne.filter import filter_data, notch_filter
-from joblib import Parallel, delayed
 from EEGProcessing import (
-    load_data,
+    compute_dfa,
+    compute_lziv,
     extract_sleep_stages,
+    fooof_1_over_f,
+    load_data,
     load_pre_split_data,
     power_spectral_density,
     sample_entropy,
     spectral_entropy,
-    compute_dfa,
-    fooof_1_over_f,
-    compute_lziv,
 )
+from joblib import Parallel, delayed
+from mne.filter import filter_data, notch_filter
 
 # caffeine dose: 200 or 400
 CAF_DOSE = 200
@@ -42,6 +43,7 @@ sampEn = True
 specShanEn = True
 specSampEn = True
 dfa = True
+dfa_env = True
 oneOverF = True
 lziv = True
 
@@ -74,6 +76,7 @@ while len(subject_ids) > len(done_subjects):
     specSampEn_done = False
     specSampEn_uncorrected_done = False
     dfa_done = False
+    dfa_env_done = False
     oneOverF_done = False
     lziv_done = False
 
@@ -105,6 +108,8 @@ while len(subject_ids) > len(done_subjects):
             create_folder("SpecSampEn", subject_path)
         if dfa:
             create_folder("DFA", subject_path)
+        if dfa_env:
+            create_folder("DFAEnv", subject_path)
         if oneOverF:
             create_folder("OneOverF", subject_path)
         if lziv:
@@ -152,6 +157,12 @@ while len(subject_ids) > len(done_subjects):
             else:
                 finished = False
                 create_folder("DFA", subject_path)
+        if dfa_env:
+            if "DFAEnv" in features:
+                dfa_env_done = True
+            else:
+                finished = False
+                create_folder("DFAEnv", subject_path)
         if oneOverF:
             if "OneOverF" in features:
                 oneOverF_done = True
@@ -202,7 +213,9 @@ while len(subject_ids) > len(done_subjects):
 
     if NOTCH_FREQ is not None:
         print(
-            "Notch filtering the data...", end="", flush=True,
+            "Notch filtering the data...",
+            end="",
+            flush=True,
         )
         for key in stages.keys():
             curr = stages[key].astype(float).transpose(0, 2, 1)
@@ -218,7 +231,9 @@ while len(subject_ids) > len(done_subjects):
 
     if FILTER_RANGE is not None:
         print(
-            "Band pass filtering the data...", end="", flush=True,
+            "Band pass filtering the data...",
+            end="",
+            flush=True,
         )
         for key in stages.keys():
             curr = stages[key].astype(float).transpose(0, 2, 1)
@@ -283,6 +298,14 @@ while len(subject_ids) > len(done_subjects):
         for key, stage in stages.items():
             feature[key] = compute_dfa(stage)
         save_feature_dict("DFA", subject_path, feature)
+        print("done")
+
+    if dfa_env and not dfa_env_done:
+        feature = {}
+        print("Computing DFA on the envelope...", end="", flush=True)
+        for key, stage in stages.items():
+            feature[key] = compute_dfa(stage, envelope=True)
+        save_feature_dict("DFAEnv", subject_path, feature)
         print("done")
 
     if oneOverF and not oneOverF_done:
