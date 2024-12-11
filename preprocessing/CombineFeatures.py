@@ -192,7 +192,7 @@ def get_psd_labels_groups(data_dict, uncorrected=False):
     return labels, groups, group_names
 
 
-def get_feature(data_dict, feature_name):
+def get_feature(data_dict, feature_name, sub_features=None):
     print(feature_name, "...", sep="")
 
     feature = Loader.load_feature(feature_name, CAF_DOSE, FEATURES_PATH)
@@ -249,6 +249,14 @@ def get_feature(data_dict, feature_name):
         ]
         data_dict["NREM"][feature_name] = np.concatenate(nrem, axis=0)
 
+    if sub_features is not None:
+        for stage in data_dict.keys():
+            assert len(data_dict[stage][feature_name]) == len(sub_features)
+
+            total_ft = data_dict[stage].pop(feature_name)
+            for i, sub_feature in enumerate(sub_features):
+                data_dict[stage][f"{feature_name}_{sub_feature}"] = total_ft[i]
+
 
 def normalize(data_dict, groups_dict):
     # average data stage- and feature-wise
@@ -294,7 +302,7 @@ if __name__ == "__main__":
     get_feature(data, "SampEn")
     get_feature(data, "SpecSampEn")
     get_feature(data, "DFA")
-    get_feature(data, "DFAEnv")
+    get_feature(data, "DFAEnv", ["delta", "theta", "alpha", "sigma", "beta", "broad"])
     get_feature(data, "OneOverF")
     get_feature(data, "LZiv")
 
