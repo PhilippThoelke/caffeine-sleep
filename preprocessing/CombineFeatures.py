@@ -23,7 +23,7 @@ DATA_PATH = "data/"
 BALANCE_STAGE_EPOCHS = False
 #  if true, make sure that every condition has the same number of epochs per subject
 BALANCE_CONDITION_EPOCHS = False
-# if true, leave the features raw and don't apply a z-transform
+# if true, normalize the features using a z-transform
 NORMALIZE_FEATURES = True
 # percentage of subjects to ignore when balancing (removes subjects with lowest number of sleep epochs)
 DROP_SUBJECTS_PCT = 0
