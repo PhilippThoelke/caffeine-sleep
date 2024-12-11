@@ -251,6 +251,8 @@ def get_feature(data_dict, feature_name, sub_features=None):
 
     if sub_features is not None:
         for stage in data_dict.keys():
+            if feature_name not in data_dict[stage]:
+                continue
             assert len(data_dict[stage][feature_name]) == len(sub_features)
 
             total_ft = data_dict[stage].pop(feature_name)
