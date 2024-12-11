@@ -258,6 +258,7 @@ def get_feature(data_dict, feature_name, sub_features=None):
             total_ft = data_dict[stage].pop(feature_name)
             for i, sub_feature in enumerate(sub_features):
                 data_dict[stage][f"{feature_name}_{sub_feature}"] = total_ft[i]
+    print("done")
 
 
 def normalize(data_dict, groups_dict):
