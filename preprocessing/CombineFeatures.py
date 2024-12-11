@@ -294,6 +294,7 @@ if __name__ == "__main__":
     get_feature(data, "SampEn")
     get_feature(data, "SpecSampEn")
     get_feature(data, "DFA")
+    get_feature(data, "DFAEnv")
     get_feature(data, "OneOverF")
     get_feature(data, "LZiv")
 
