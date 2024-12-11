@@ -65,10 +65,10 @@ def load_labels(caf_dose, subjects_path):
 
     if caf_dose == 200:
         # for caffeine dose 200 the label names are 'Y' and 'N'
-        subjects["CAF"] = (subjects["CAF"] == "Y").values.astype(np.int)
+        subjects["CAF"] = (subjects["CAF"] == "Y").values.astype(int)
     elif caf_dose == 400:
         # for caffeine dose 400 the label names are 1 and 0
-        subjects["CAF"] = (subjects["CAF"] == 1).values.astype(np.int)
+        subjects["CAF"] = (subjects["CAF"] == 1).values.astype(int)
 
     return dict(subjects.values)
 
