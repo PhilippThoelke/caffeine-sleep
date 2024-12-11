@@ -50,6 +50,7 @@ if BALANCE_STAGE_EPOCHS and BALANCE_CONDITION_EPOCHS:
 if not os.path.exists(RESULT_PATH):
     os.makedirs(RESULT_PATH)
 
+
 def get_psd_labels_groups(data_dict, uncorrected=False):
     print(f"{'Uncorrected ' if uncorrected else ''}PSD...")
     feature_name = "PSDUncorrected" if uncorrected else "PSD"
@@ -193,7 +194,7 @@ def get_psd_labels_groups(data_dict, uncorrected=False):
 
 
 def get_feature(data_dict, feature_name, sub_features=None):
-    print(feature_name, "...", sep="")
+    print(feature_name, "...", sep="", end="")
 
     feature = Loader.load_feature(feature_name, CAF_DOSE, FEATURES_PATH)
     meta_info = pd.read_csv(SUBJECTS_PATH, index_col=0)
@@ -384,7 +385,7 @@ if __name__ == "__main__":
                                 (groups[stage] == i) & (labels[stage] == 0)
                             ].shape[0],
                         )
-                    )[:sample_mins[i]],
+                    )[: sample_mins[i]],
                     1: np.random.permutation(
                         max(
                             sample_mins[i],
@@ -392,7 +393,7 @@ if __name__ == "__main__":
                                 (groups[stage] == i) & (labels[stage] == 1)
                             ].shape[0],
                         )
-                    )[:sample_mins[i]],
+                    )[: sample_mins[i]],
                 }
 
         added = set()
@@ -483,4 +484,3 @@ if __name__ == "__main__":
         pickle.dump(names, file)
 
     print("Done!")
-
