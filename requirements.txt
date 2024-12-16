@@ -9,5 +9,6 @@ tqdm==4.64.0
 neurokit2==0.1.7
 fooof==1.0.0
 antropy==0.1.4
+statsmodels==0.14.1
 # modified version of mne
 mne @ git+https://github.com/PhilippThoelke/mne-python.git
